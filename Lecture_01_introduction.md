@@ -10,26 +10,26 @@
 
 # Stataの特徴
 ## コマンドが豊富にある
-必ずしも、自分のやりたい公式コマンドが揃うわけではないが、user-driven commandを探せばだいたい見つかります。  
+Stata1.0（および1.1）では44個のコマンドがあるのみでしたが、Stata17ではかなり膨大な数まで増えています。とはいえ、自分のやりたい公式コマンドが全て揃うとは限りません。そのような場合は、user-driven commandを探せばだいたい見つかります。  
 ```
 // コマンドウィンドウでの探し方
 findit keyword
 serch keyword
 ```
-それでも見つからないときは、ネットで検索する。最初に検索するべきなのは、[Statalist](https://statalist.org/)。
+それでも見つからないときは、ネットで検索してください。公式の下記サイト参考になると思います。
 
-また、Stata社の統計家の方針によって公式コマンドが決まります。
-
-gllammというコマンドは、元はuse-driven commandだったが、ver14では公式コマンドに採用されました。公式コマンドmeglmも同様の機能がある。
-
-一方で、[psmatch2](http://repec.org/bocode/p/psmatch2.html)というコマンドは、かつては広く使われたuse-driven commandだったが、不採用であり、Stata13で公式コマンド（teffects）が作られた（ATEの標準誤差の計算で意見の不一致）。
+* [Statalist](https://www.statalist.org/forums/)
+* [UCLA](https://stats.oarc.ucla.edu/stata/)
+* [Stata FAQ](https://www.stata.com/support/faqs/)
+* [Stataグラフギャラリー](https://www.lightstone.co.jp/stata/techinfo/graphs_overview1.html)
 
 ## インストールが手軽
 RやPythonと異なって、インストールするときに手間がほとんどかかりません。
 
 また、高速化についても自分自身で何か行なう必要なありません（高価なバージョンを用意する）。
 
-## 世界第3位の商用統計解析ソフト
+## Pythonとの連携を開始した。
+Stata16からは、プログラミング言語Pythonとの連携をはじめました。
 
 
 # この講義シリーズの目的
@@ -44,31 +44,75 @@ RやPythonと異なって、インストールするときに手間がほとん�
 * Python
 
 ## do-fileを使ったprograming
-最初の段階として、do-fileを使って解析を進めることが必要です。マウスクリックだけでの解析作業であったり、Stataのコマンドウィンドウのみを用いた作業では、下に示す再現性
+レベル1として、do-fileを使って解析を進めることが必要です。コンピュータは、繰り返し作業に強いので、一度do-fileを組めば再利用することで、効率的な作業が可能です。
+
+よく見せて頂いているdo fileは、1つのファイルに全ての挙動を含んでしまっていますが、モジュール化することが望ましいと考えます。
+
+また、このような作業は、研究の再現性の確保やプロセスの文書化に繋がります。
 
 ## programコマンドを用いたprograming
+`program`コマンドは、まとまった一連の操作を実行するためのプログラムを定義します。
 
+下の例では、`hellow_stata`というプログラムを定義しました。
+
+```stata
+program define hello_stata
+ display "Hello, Stata!"
+ display "`1' is an excellent stata user!"
+end
+```
+
+この定義した`hellow_stata'プログラムを実行すると、下記の様になります。
+
+```stata
+hello_stata foobar
+```
+
+> Hello, Stata!  
+> foobar is an excellent stata user!
+
+これは単に文字を表示させるだけのプラグラムですが、複雑なことをプログラム定義しておけば、解析の効率化に役立ちます。
 
 ## ado-fileを使ったprogramming
+レベル2として、ado fileを作成することが挙げられます。ado fileは、Stataのコマンドの本体ともいえるファイルです。このファイルを自作することによって、Stataは更に効率的に柔軟性を持った操作をおこなうことができます。
+
+なお、Stataでado fileで定義したコマンドを使うには、決められたフォルダにado fileを格納しておくことが必要です。格納先のフォルダは下記のコマンドで見ることが出来ます。
+```stata
+adopath
+```
+
+> [1]  (BASE)      "C:\Program Files\Stata17\ado\base/"  
+> [2]  (SITE)      "C:\Program Files\Stata17\ado\site/"  
+> [3]              "."  
+> [4]  (PERSONAL)  "C:\Users\user\ado\personal/"  
+> [5]  (PLUS)      "c:\ado\plus/"  
+> [6]  (OLDPLACE)  "c:\ado/"  
+
+コマンドの実行が命令されると、Stataはado fileをフォルダ1からフォルダ6まで探します。通常のコマンドは、1（BASE）に入っています。`ssc`を利用した場合は5（PLUS）にインストールされています。なお、自作のコマンドは4（PERSONAL）に入れておくと良いと思います。
+
+ado fileを一から作成するのは大変ですが、既存のadoファイルを修正したり、改造することで自分の課題に合ったadoファイルを作成することもできます。
 
 ## MataやPythonを使ったprogramming
-Stataでは、Stata内部から他の言語を呼び出して使うことができます。その中で古くから用いられているのが[Mata](https://www.stata.com/features/overview/introduction-to-mata/)です。Mataでは、
+Stataでは、Stata内部から他の言語を呼び出して使うことができます。
+
+その中で古くから用いられているのが[Mata](https://www.stata.com/features/overview/introduction-to-mata/)です。Mataでは、スカラー、行列、文字列などさまざまなデータの計算を高速に行ないます。
+
+Stata16からはPythonも実行できるようになりました。また、Stata17からは逆にPythonの実行環境でもStataを実行できるようになりました。Pythonは機械学習ライブラリが豊富ですので、Stataでの解析に機械学習結果を混ぜるなどの活用が今後増えると思われます。
 
 # なぜプログラミングが必要なのか？
 ## 作業効率的な必要性
-一度、作った統計解析プログラムを残しておく。
-似たようなデータ解析を行う際に、プログラムの流用が出来る。
-GitHubなどで共有可能（Stataの共有例は少ないが…）
+* 一度、作った統計解析プログラムを残しておく。
+* 似たようなデータ解析を行う際に、プログラムの流用ができます
+* GitHubなどで共有可能です（残念ながら、Stataの共有例は少ないです）
 ## 倫理的な必要性
 ### 再現不可能な遺伝学
-2006年のデューク大学の抗がん剤の関する臨床試験があり、腫瘍に対して良く効く抗腫瘍薬を特定出来るという研究成果（遺伝子型）でした。この内容に対して、生物統計家：Keith A. BaggerlyとKevin R. Coombesが検証した。
+2006年のデューク大学の抗がん剤の関する臨床試験があり、腫瘍に対して良く効く抗腫瘍薬を特定出来るという研究成果（遺伝子型）でした。この内容に対して、生物統計家：Keith A. BaggerlyとKevin R. Coombesが検証しました。
 
 しデューク大学の研究者から提供されたデータセットを調べて見たところ、下記のような問題点がありました。
 * データが1つずつズレているところがある。
 * 1人の患者が2回データセットに出てくる。
 * 効く・効かないのカテゴリが逆になっている患者がいる。
 * マイクロアレイ機器ごとに結果に有意なバラツキがあった。（どの機器を使うかによって、結果が異なる）
-* 
 要は、しっちゃかめっちゃかで、問題しか無かったようです。[参考](http://projecteuclid.org/download/pdfview_1/euclid.aoas/1267453942)
 
 しかし、デューク大学の審査委員会はそれを見つけられず臨床試験は続けられた。
