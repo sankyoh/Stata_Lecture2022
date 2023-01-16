@@ -7,8 +7,7 @@
 * Current working directoryとadoファイルのパス
 * Project fileとmaster.doファイル
 * do-file editor
-* 変数・マクロ・マトリクス
-* 未知のエラー対応
+* 変数・マクロ・マトリクス・フレーム
 
 # カレントディレクトリとシステムディレクトリ
 ## カレントディレクトリ
