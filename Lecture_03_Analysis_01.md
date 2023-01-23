@@ -45,10 +45,22 @@
 
 |   | ATE | ATT | ATU | Conditional ATE | Local ATE | ATO |
 |:-:| :-: | :-: | :-: | :-:             | :-:       | :-: |
-|**標的集団**| 集団全体 | 介入者・曝露者 | 非介入者・非曝露者 | 集団全体  | Complier       | 背景情報がよくにた集団 |
-|**解析集団**| IPTW    | 傾向スコアマッチング | 傾向スコアマッチング | 交互作用項を含む多変量回帰モデル | 操作変数法 | オーバーラップ重み付け |
-
+|**標的集団**| 集団全体 | 介入者<BR>曝露者 | 非介入者<BR>非曝露者 | 集団全体  | Complier       | 背景情報が似た集団 |
+|**解析方法**| IPTW等    | PSM[^3] | PSM | 交互作用項を含む<BR>多変量回帰モデル | 操作変数法 | オーバーラップ重み付け |
+  
+* ATE = Average Treatment Effect
+* ATT = Average Treatment Effect on the Treated (StataではATETと表現されています)
+* ATU = Average Treatment Effect on the Untreated
+* ATO = Average Treatment Effect on the Overlapped
+* IPTW = Inverse Probability of Treatment Weighing
+* PSM = Propensity Score Matching
+  
+この中からどのEstimandを検討するかは、研究目的や取得できるデータによる限界がありますが、異なるEstimand同士の比較には注意が必要です。
+  
+例えば、IPTWとPSMによる解析結果が似ていることは、その解析結果が正しいことを示唆しません。単に解析の仮定が成り立っているときに、ATEとATTが似ているということを意味しています。
+  
 
 
 [^1]: このタイミングで適当なところに作成して下さい。
 [^2]: 日本語訳はまだありませんが、Modern Epidemiology 4th Edの訳本では「推定目標」と訳されています。
+[^3]: 一般的にはPSMではATTが算出されますが、StataではATEを算出することもできます（やや特殊なマッチングを行ないます）。
