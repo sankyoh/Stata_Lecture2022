@@ -125,7 +125,25 @@ Stata Project fileを作成・設定します。
 6. 名前は何でも良いですが、今回は`_Seminar_prj01.stpr`としました。
 7. 画面がこんな感じになっているはず。
 
-![image](./images/lec03_img02_prj_cr.png)
+![image](./images/lec3_img02_prj_cr.png)
+
+このプロジェクトファイルにグループを作っていきます。
+
+1. `_Seminar_prj01.stpr`の箇所で右クリックし、メニューを表示させる。
+1. 「新規グループを追加」を選択する。
+1. 下記のグループを追加していく。
+    * `00. Data`
+    * `01. Dataset ICL`
+    * `02. Des Stat`
+    * `03. Inf Stat`
+    * `99. Common`
+1. master.doファイルを作る。
+    * 右クリックメニューを表示させる。
+    * 「新規ファイルを_Seminar_prj01.stprに追加」を選択。
+    * 作業フォルダに`master.do`を追加する。
+
+## 操作（2） master.doファイルの記述
+master.doファイルには、複数のファイルの相互関係や動作順についても記述します。今回は、<a href="解析方針「多変量回帰モデル」">testへのリンク</a>
 
 
 
