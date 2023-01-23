@@ -1,7 +1,8 @@
 # 今日のゴール
-* サンプルデータを作る
+* サンプルデータの解析を行なう
 
 # 今日の目的
+* Projectファイルを作ってからの流れを実行する。
 
 # サンプルデータ
 [Causal Inference: What If](https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/)サイトにあるNHEFSデータを用います。
@@ -265,7 +266,138 @@ table1, by(qsmk) ///
 
 ```
 
+### `table1コマンド`の使い方
+どのような表を作るかは、オプションで指定します。
 
+列を分けるためには、`by()`オプションを利用します。ここでは変数qsmkで分けています。
+
+vars()オプションで表示する変数のリストです。各変数がどのような変数であるかをすぐあとにcatなどで記載しています。複数の変数を指定するときにはバックスラッシュ（`\`）で区切ります。
+
+なお、検定を自動で行なってくれますが、STROBEやCONSORTを考慮すると、この検定は不要と考えます。
+
+* bin = 二値変数（カイ2乗検定）
+* bine = 二値変数（Fisherの正確確率検定）
+* cat = カテゴリ変数（カイ2乗検定）
+* cate = カテゴリ変数（Fisherの正確確率検定）
+* contn = 連続変数（正規分布）
+* conts = 連続変数（歪んだ分布）
+
+format()オプションで、表示する桁数などを指定します。`%9.2f`では、小数点下2桁まで表示させています。また、個別に指定したいときは、vars()オプション内に指定します。`smokeyrs conts %9.1f`とすると、smokeyrsは小数点下1桁の表示になります。
+
+saving()オプションで、外部Excelに結果を書き出します。replaceを付けておくと、上書き保存になります。
+
+## 操作（5） anRegress.doを作成
+回帰分析／重回帰分析を実施します。`03. Inf Stat`にdoファイルを作成します。
+
+```stata
+/**** ***** ***** ***** ***** ***** *****
+*
+* Stata Seminar 2022, NHEFS analysis 01
+* Descriptive Statistics
+*
+***** ***** ***** ***** ***** ***** ****/
+version 17
+
+use nhefs_01, clear
+
+local model_1 
+local model_2 i.sex age i.race i.education smokeintensity smokeyrs i.exercise i.active wt71
+
+regress wt82_71 qsmk ``1''
+
+* esttabを使って、回帰係数・信頼区間・p値を取得
+// net install st0085_2
+est store `1'
+qui esttab `1', ci 
+matrix `1' = r(coefs)[1,1..4]
+
+* 行と列の名前を設定
+matrix coleq   `1' = regress
+matrix rowname `1' = `1'
+```
+
+### ローカルマクロ`` `1' ``
+ここで登場する`` `1' ``について説明します。
+
+このdoファイルをmaster.doから呼び出すときに引数を付けていたことを思い出して下さい。この引数は、呼び出された側のdoファイル（ここではanRegress.do）に引き継がれます。1つめの引数は、呼び出された側ではローカルマクロ`` `1' ``となります。もし、2つめの引数があれば`` `2' ``です。
+
+今回master.doから呼び出す時に  
+`do anRegress model_1`  
+としていました。
+
+つまり、anRegressの中にマクロ名`` `1' ``で、コンテンツ`model_1`というローカルマクロが作られます。
+このローカルマクロ`` `1' ``は、下記で使われています。  
+``` regress wt82_71 qsmk ``1'' ```
+
+まず、Stataは、ローカルマクロを解釈し、内側からマクロ名をコンテンツに置き換えます。  
+``` regress wt82_71 qsmk ``1'' ```  
+このコマンドは、下記の様に解釈されます。  
+``` regress wt82_71 qsmk `model_1' ```  
+そして、マクロ名`` `model_1' ``は中身が定義されていませんので、  
+``` regress wt82_71 qsmk ```  
+このように解釈されます。つまり、model_1という引数をとると、粗解析モデルでregressが実行されます。
+
+次にmaster.doから呼び出す時には、  
+`do anRegress model_2`  
+としていました。
+
+ここで呼び出される際も、anRegressの中にマクロ名`` `1' ``で、コンテンツ`model_2`というローカルマクロが作られます。
+このローカルマクロ`` `1' ``は、下記で使われています。  
+``` regress wt82_71 qsmk ``1'' ```
+
+まず、Stataは、ローカルマクロを解釈し、内側からマクロ名をコンテンツに置き換えます。  
+``` regress wt82_71 qsmk ``1'' ```  
+このコマンドは、下記の様に解釈されます。  
+``` regress wt82_71 qsmk `model_2' ```  
+そして、マクロ名`` `model_2' ``は交絡要因のリストが格納されていますので、  
+``` regress wt82_71 qsmk i.sex age i.race i.education smokeintensity smokeyrs i.exercise i.active wt71 ```  
+このように解釈されます。つまり、model_2という引数をとると、調整モデルでregressが実行されます。
+
+このような方法で、1つのdoファイルで異なる挙動を取ることができます。
+
+### matrixコマンド
+ここで少しだけmatrixを使っています。
+
+esttabコマンドは、est storeで保存した結果を表記する便利なコマンドですが、（なぜか）信頼区間とp値のどちらかしか表記できません。両方を表示させたいときがありますが、そういうことには対応できません。
+
+また、因果推論を行う時に交絡の回帰係数は不要なので、削除しておきたいところです。
+
+こういった点は、コピペ後に操作（マウス操作で削除したり、追加したり）しても良いですが、できれば避けたいところです。
+
+ここでは、esttabが裏で作っているmatrixからいるところだけを抽出しています。
+
+`` matrix `1' = r(coefs)[1,1..4] ``このコマンドでesttabが作ったr(coefs)というmatrixの1行目の1列目～4列目を抽出しています。この中身は、regressコマンドの説明変数の1つめ（つまり、qsmk）の回帰係数・信頼区間下限・信頼区間上限・p値が格納されます。
+
+ローカルマクロ`` `1' ``は、マクロの中身であるmodel_1やmodel_2に置き換えられます。つまり、model_1やmodel_2という名前のmatrixが作られます。
+
+行列をあとでくっつけるのですが、その時のために、行列名を調整しています。
+
+行名はモデル名に変換し、列名に分析名（regress）が入るようにしています。
+
+## 操作（6） anRegress.doを作成
+do wtRegtoExcel 2
+
+```stata
+version 17
+
+matrix result = model_1
+forvalues x=2/`1' {
+   matrix rowjoin result = result model_`x'
+}
+
+putexcel set Result_table2.xlsx, replace
+putexcel A1 = "model"
+putexcel B1 = "Coef"
+putexcel C1 = "95%CI"
+putexcel E1 = "p-value"
+putexcel A2 = matrix(result), nformat(#.000) rownames 
+putexcel save
+```
+
+wtRegtoExcel.doは引数に数字の2を持っています（表に記載する層モデル数を表します）。
+putexcelコマンドで結果をExcelに書き込んでいます。
+
+ここまで作成して、master.doファイルを実行すると、結果ファイルが2つ出力されます。
 
 [^1]: このタイミングで適当なところに作成して下さい。
 [^2]: 日本語訳はまだありませんが、Modern Epidemiology 4th Edの訳本では「推定目標」と訳されています。
