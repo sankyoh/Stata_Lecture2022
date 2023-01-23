@@ -110,8 +110,21 @@ ATEを求めるために、下記の様な手順をとることにします。�
 3. 記述統計量
 4. 粗解析モデル
 5. 調整モデル（＝多変量回帰）
-6. Excelに書出
+6. Excelに書出[^5]
 
+## 使う変数名
+* 曝露変数: qsmk (1=禁煙, 0=禁煙なし)
+* アウトカム: wt82_71 (1971年から1982年までの体重変化)
+* 交絡変数（簡単のため、今回は変数の積は含めていません）
+    * sex
+    * age
+    * race
+    * education
+    * smokeintensity
+    * smokeyrs
+    * exercise
+    * active
+    * wt71
 
 # Stataでの操作
 ## 操作（1） Project fileの設定
@@ -142,8 +155,115 @@ Stata Project fileを作成・設定します。
     * 「新規ファイルを_Seminar_prj01.stprに追加」を選択。
     * 作業フォルダに`master.do`を追加する。
 
-## 操作（2） master.doファイルの記述
-master.doファイルには、複数のファイルの相互関係や動作順についても記述します。今回は、<a href="解析方針「多変量回帰モデル」">testへのリンク</a>
+## 操作（2） master.doファイルを作成
+master.doファイルには、複数のファイルの相互関係や動作順についても記述します。今回は、解析方針「多変量回帰モデル」で計画した様に作成します。
+
+`doコマンド`は、他のdoファイルを呼び出して実行します。
+
+このコマンドは`do ファイル名 [引数]`という構造を持っています。引数を変えることで、同じdoファイルに違う挙動を取らせることができます。
+
+また、コメントもあとで記載します。
+
+```stata
+/**** ***** ***** ***** ***** ***** *****
+*
+* Stata Seminar 2022, NHEFS analysis 01
+*
+***** ***** ***** ***** ***** ***** ****/
+
+* データセット読込み整理
+do crDataset
+
+* 記述統計
+do anDesStat
+
+* 粗解析モデル
+do anRegress model_1
+
+* 調整モデル
+do anRegress model_2
+
+* 2モデル（粗解析モデルと調整モデル）の結果をExcel書出し
+do wtRegtoExcel 2 model_1 model_2
+```
+
+## 操作（3） crDataset.doを作成
+まず、データファイルを読み込み、整理するdoファイルを作成します。今回のデータファイルは、Stata用に作られているので、幸いここでの操作は少ないです。
+
+Prjectウィンドウの`01. Dataset ICL`に「新規ファイルを追加」を行ないます。
+
+```stata
+/**** ***** ***** ***** ***** ***** *****
+*
+* Stata Seminar 2022, NHEFS analysis 01
+* Data Import, Cleaning, and Labeling
+*
+***** ***** ***** ***** ***** ***** ****/
+version 17
+
+use nhefs, clear
+
+keep if !missing(wt82_71) // アウトカム欠損がない
+keep if !missing(qsmk)    // 曝露欠損がない
+
+keep seqn qsmk wt82_71 sex age race education smokeintensity smokeyrs exercise active wt71 // 必要な変数以外削除
+order seqn qsmk wt82_71
+
+* ラベル
+label define qsmk 0 "no quit" 1 "quit"
+label values qsmk qsmk
+
+label define sex 0 "male" 1 "female"
+label values sex sex
+
+label define race 0 "white" 1 "black/other"
+label values race race
+
+label define education 1 "8th grade or less" 2 "HS dropout" 3 "HS" 4 "College dropout" 5 "College or more"
+label values education education
+
+label define exercise  0 "much exercise" 1 "moderate exercise" 2 "little or no exercise"
+label values exercise exercise 
+
+label define active 0 "very active" 1 "moderate active" 2 "inactive"
+label values active active
+
+compress 
+label data "230124"
+save nhefs_01.dta, replace
+```
+
+Stataのバージョン情報を入れておきます。
+また、アウトカムや曝露情報があると（そのままでは）解析できないので、削除します。
+使わない変数もまとめて削除し、並び替えを行ないました。個人の好みですが、ID、曝露、アウトカムが最初の方に有った方が便利だと思います。
+
+## 操作（4） anDesStat.doを作成
+記述統計量について作表します。
+
+Prjectウィンドウの`02. Des Stat`に「新規ファイルを追加」を行ないます。
+簡単な記述統計量の算出・まとめであれば、外部コマンド`table1`が有用です。
+
+```stata
+/**** ***** ***** ***** ***** ***** *****
+*
+* Stata Seminar 2022, NHEFS analysis 01
+* Descriptive Statistics
+*
+***** ***** ***** ***** ***** ***** ****/
+version 17
+
+use nhefs_01, clear
+
+// ssc install table1
+
+table1, by(qsmk) ///
+   vars(sex cat \ age contn \ race cat \ education cat \ wt71 contn \ smokeintensity conts \ smokeyrs conts \ active cat \ exercise cat)
+
+table1, by(qsmk) ///
+   vars(sex cat \ age contn \ race cat \ education cat \ wt71 contn \ smokeintensity conts \ smokeyrs conts \ active cat \ exercise cat) ///
+   format(%9.2f) saving(Result_table1.xlsx, replace)
+
+```
 
 
 
@@ -151,3 +271,4 @@ master.doファイルには、複数のファイルの相互関係や動作順�
 [^2]: 日本語訳はまだありませんが、Modern Epidemiology 4th Edの訳本では「推定目標」と訳されています。
 [^3]: 一般的にはPSMではATTが算出されますが、StataではATEを算出することもできます（やや特殊なマッチングを行ないます）。
 [^4]: バイアスがかかりますが、今回は扱いません。
+[^5]: Stataには結果書出しのためのコマンド（`esttab`や`outreg2`）がありますが、何か欲しいものと違うんですよ。なので、自分で調整しています。
