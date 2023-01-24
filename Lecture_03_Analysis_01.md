@@ -378,6 +378,12 @@ esttabコマンドは、est storeで保存した結果を表記する便利な�
 do wtRegtoExcel 2
 
 ```stata
+/**** ***** ***** ***** ***** ***** *****
+*
+* Result of Regression Matrix 
+*     to Excel table.
+*
+***** ***** ***** ***** ***** ***** ****/
 version 17
 
 matrix result = model_1
