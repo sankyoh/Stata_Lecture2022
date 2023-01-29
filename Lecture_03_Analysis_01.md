@@ -1,8 +1,9 @@
 # 今日のゴール
-* サンプルデータの解析を行なう
+* サンプルデータの解析（重回帰分析）を行なう
 
 # 今日の目的
 * Projectファイルを作ってからの流れを実行する。
+* 複数のdo-fileで解析を実行する。
 
 # サンプルデータ
 [Causal Inference: What If](https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/)サイトにあるNHEFSデータを用います。
