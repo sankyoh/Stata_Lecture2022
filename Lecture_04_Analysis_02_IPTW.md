@@ -16,7 +16,7 @@
 |   | ATE | ATT | ATU | Conditional ATE | Local ATE | ATO |
 |:-:| :-: | :-: | :-: | :-:             | :-:       | :-: |
 | **標的集団** | 集団全体 | 介入者・曝露者 | 非介入者・非曝露者 | 集団全体  | Complier       | いずれにもなりうる集団 |
-|**解析方法**| IPTW・多変量回帰等 | PSM[^3]等 | PSM等 | 多変量回帰モデル等 | 操作変数法 | オーバーラップ重み付け |
+|**解析方法**| IPTW・多変量回帰等 | PSM等 | PSM等 | 多変量回帰モデル等 | 操作変数法 | オーバーラップ重み付け |
 
 * ATE = Average Treatment Effect
 * ATT = Average Treatment Effect on the Treated (StataではATETと表現されています)
@@ -476,7 +476,15 @@ Stataではダミー変数化するときに、その変数の前に`i.`をつ�
 
 ここでの`_I*`は、`_I`から始まる全ての変数をリストアップしていることと同等です。つまり、`xi:`で残したダミー変数全てと同じ意味になっています。
 
+### 共変量バランスの評価・図示
 
 
+共変量バランス（標準化差）
+
+![lec4_bal_smd](https://user-images.githubusercontent.com/67684585/215559420-f4315d29-f37f-4e1b-bb3e-42fa0bd50a79.png)
+
+共変量バランス（分散比）
+
+![lec4_bal_vr](https://user-images.githubusercontent.com/67684585/215559607-192aac17-d797-4b5f-b7b9-c27bc0785301.png)
 
 [^1]:今世紀中を予定
