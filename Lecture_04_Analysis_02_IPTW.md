@@ -85,6 +85,8 @@ Stata Project fileを作成・設定します。
 
 <Lecture3のコピー、ここまで>
 
+今回はLecture3で作成した`stpr`ファイルを開くだけでOKです。
+
 ## 操作（2）Project fileの変更
 IPTWを行うために、このプロジェクトファイルにグループを作っていきます。
 
@@ -115,11 +117,9 @@ IPTWを行うために、このプロジェクトファイルにグループを�
 ## 操作（3） master.doファイルを編集
 master.doファイルには、複数のファイルの相互関係や動作順についてもしています。今回は、解析方針「IPTW」で計画した様に追加します。
 
-`doコマンド`は、他のdoファイルを呼び出して実行します。
-
-このコマンドは`do ファイル名 [引数]`という構造を持っています。引数を変えることで、同じdoファイルに違う挙動を取らせることができます。
-
-また、コメントもあとで記載します。
+新たに、下記の2つのdo-fileを作成する計画です。
+* anPScalc
+* anPSeval
 
 ```stata
 /**** ***** ***** ***** ***** ***** *****
@@ -141,7 +141,6 @@ do anPScalc
 * 傾向スコア・IPTWの評価
 do anPSeval
 
-
 ///// ここまで追記箇所 /////
 
 * 粗解析モデル
@@ -154,224 +153,330 @@ do anRegress model_2
 do anIPTW
 
 * 3モデル（粗解析モデルと調整モデルとIPTWモデル）の結果をExcel書出し 編集箇所
-do wtRegtoExcel 3
+do wtRegtoExcel 3 // 3に書き換えた。
 ```
 
-## 操作（3） crDataset.doを作成
-まず、データファイルを読み込み、整理するdoファイルを作成します。今回のデータファイルは、Stata用に作られているので、幸いここでの操作は少ないです。
+## 操作（3） anPScals.doの作成
+傾向スコアを計算し、IPTW重み付けを行うためのdo-fileを作成します。プロジェクトファイルの`03. PS`グループにdo-fileを新規作成します。
 
-Prjectウィンドウの`01. Dataset ICL`に「新規ファイルを追加」を行ないます。
+傾向スコアは、ざっくりいうと、**条件付けられた曝露確率**です。色々な方法で計算可能ですが、オーソドックスにロジスティック回帰分析をもとに計算します。
+
+禁煙群と非禁煙群でバランスを取りたい変数で条件付けます。
+
+例えば、禁煙群と非禁煙群で性別の割合を調整したいとすると、下記の様なコードになります。
+
+```stata
+logit qsmk sex
+predict prob, pr
+gen prob_scrach = 1/(1+exp(-0.3202065*sex - 0.9016385)^(-1))
+su prob*
+```
+
+ロジスティック回帰分析を行うと、その結果（回帰係数）を元に個々人の曝露確率が計算可能です。`predict`コマンドは直前の一般化線形モデルで推定した回帰係数を元にいろいろな数値を計算するためのコマンドです。
+
+ここでは、`pr`オプションを利用していますので、直前のロジスティック回帰分析の結果（算出された回帰係数）からqsmk==1となる確率を計算しています。この計算式は下記になります。
+
+$$ prob = \frac{1}{1+exp(β_0 + β_1sex)^{-1}} $$
+
+上記のサンプルコードの3行目で同様の計算をしています。実際に`predict`コマンドで算出した変数`prob`と`gen`コマンドで計算式を用いた変数`prob_scrach`で同じ値になっています。
+
+
+今回は、もっと多くの変数で条件付けるので、下記のdo-fileを作成します。
 
 ```stata
 /**** ***** ***** ***** ***** ***** *****
 *
 * Stata Seminar 2022, NHEFS analysis 01
-* Data Import, Cleaning, and Labeling
+* Propensity Score Calculation
 *
 ***** ***** ***** ***** ***** ***** ****/
 version 17
 
-use nhefs, clear
-
-keep if !missing(wt82_71) // アウトカム欠損がない
-keep if !missing(qsmk)    // 曝露欠損がない
-
-keep seqn qsmk wt82_71 sex age race education smokeintensity smokeyrs exercise active wt71 // 必要な変数以外削除
-order seqn qsmk wt82_71
-
-* ラベル
-label define qsmk 0 "no quit" 1 "quit"
-label values qsmk qsmk
-
-label define sex 0 "male" 1 "female"
-label values sex sex
-
-label define race 0 "white" 1 "black/other"
-label values race race
-
-label define education 1 "8th grade or less" 2 "HS dropout" 3 "HS" 4 "College dropout" 5 "College or more"
-label values education education
-
-label define exercise  0 "much exercise" 1 "moderate exercise" 2 "little or no exercise"
-label values exercise exercise 
-
-label define active 0 "very active" 1 "moderate active" 2 "inactive"
-label values active active
-
-compress 
-label data "230124"
-save nhefs_01.dta, replace
-```
-
-Stataのバージョン情報を入れておきます。
-また、アウトカムや曝露情報があると（そのままでは）解析できないので、削除します。
-使わない変数もまとめて削除し、並び替えを行ないました。個人の好みですが、ID、曝露、アウトカムが最初の方に有った方が便利だと思います。
-
-## 操作（4） anDesStat.doを作成
-記述統計量について作表します。
-
-Prjectウィンドウの`02. Des Stat`に「新規ファイルを追加」を行ないます。
-簡単な記述統計量の算出・まとめであれば、外部コマンド`table1`が有用です。
-
-```stata
-/**** ***** ***** ***** ***** ***** *****
-*
-* Stata Seminar 2022, NHEFS analysis 01
-* Descriptive Statistics
-*
-***** ***** ***** ***** ***** ***** ****/
-version 17
-
+* データ読み込み
 use nhefs_01, clear
 
-// ssc install table1
+local conf_var  sex age race i.education smokeintensity smokeyrs i.exercise i.active wt71
+local conf_var2 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
+c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71
 
-table1, by(qsmk) ///
-   vars(sex cat \ age contn \ race cat \ education cat \ wt71 contn \ smokeintensity conts \ smokeyrs conts \ active cat \ exercise cat)
+* Conditional probability of Quit smoking
+xi:logit qsmk `conf_var'
+predict ps, pr
 
-table1, by(qsmk) ///
-   vars(sex cat \ age contn \ race cat \ education cat \ wt71 contn \ smokeintensity conts \ smokeyrs conts \ active cat \ exercise cat) ///
-   format(%9.2f) saving(Result_table1.xlsx, replace)
+* Unconditional probability of Quit smoking
+logit qsmk
+predict uncp, pr
 
+* 重み計算
+gen unwt = 1
+gen iptw = cond(qsmk==1, 1/ps, 1/(1-ps)) if !missing(ps)
+gen stdw = cond(qsmk==1, uncp/ps, (1-uncp)/(1-ps)) if !missing(ps, uncp)　// 参考
+gen ovlw = cond(qsmk==1, 1-ps, ps) if !missing(ps) // 参考
+
+label variable ps "Propensity Score"
+label variable uncp "Unconditional Probability"
+label variable unwt "=1 constant"
+label variable iptw "Inverse Probability Treatement Weight"
+label variable stdw "Standardized Weight" // 今回は使わない
+label variable ovlw "Overlap Weight" // 今回は使わない
+
+* 新しいデータセットとしてセーブ
+compress
+label data "nhefs_01 + PS & IPTW"
+save nhefs_02, replace
+```
+重み付けのための「重み」をいくつか計算しています。今回は、iptw以外は気にしないで下さい。
+
+傾向スコアや重みの計算が終わったデータを新しい名前で保存します。**元の名前では保存しません。**
+
+### 傾向スコアの計算 
+
+`local`コマンドで、条件付ける変数を指定しています。
+
+`conf_var`では、一次項のみですが、`conf_var2`では二乗項や交互作用項も含んでいます。後から見るとおり、後者でよりよいバランス調整になります。
+
+* ``xi:logit qsmk `conf_var' ``
+
+後から、このコマンドの`` `conf_var' ``部分を変更することで、`conf_var2`の場合のバランスを確認します。
+
+* `predict ps, pr`
+* 
+ここで出てきた`変数ps`に傾向スコアが格納されます。
+
+### 傾向スコアから重みの算出
+
+IPTWは、次の様に計算できます。
+
+$$ IPTW_{exposed} = \frac{1}{ps} $$ 
+
+$$ IPTW_{unexposed} = \frac{1}{1-ps} $$ 
+
+これをStataでは下記の様にコマンド指定しています。
+
+* `gen iptw = cond(qsmk==1, 1/ps, 1/(1-ps)) if !missing(ps)`
+
+`cond関数`は、3つの引数をもった関数です。1つ目の引数には条件を記載します。これが成立するならば（真であれば）、cond関数は2つ目の値を返します。成立していなければ（偽であれば）、3つ目の値を返します。
+
+また、ifの後の`!missing(ps)`は変数psが欠損ではない、ということを意味しています。
+
+なお、こっそり他の重み付け方法（Standardized weight、Overlap weight）も行っていますが、そのうち出てきます。ここでは一旦置いておきます。
+
+### 汎用化のための工夫
+
+このdo-fileでは、下記のようなコマンドで変数unwtを作っています。この変数は
+
+* `gen unwt = 1`
+
+重みを付けた解析はには、`` [pw=weight] ``という表記を追加します。この表記自体を入れなければ、重み付け無しの解析になります。そのため、重み付けなしの解析と重み付けありの解析を行う時には、次のような記載になります。
+
+```stata
+regress y x
+regress y x [pw=iptw]
 ```
 
-### `table1コマンド`の使い方
-どのような表を作るかは、オプションで指定します。
+この書き方でも良いのですが、重み部分をローカルマクロで書く事は出来ません。似た解析なので、できればまとめたいところです。
 
-列を分けるためには、`by()`オプションを利用します。ここでは変数qsmkで分けています。
+先ほどの変数unwtを使うと次の様にかけます。
 
-vars()オプションで表示する変数のリストです。各変数がどのような変数であるかをすぐあとにcatなどで記載しています。複数の変数を指定するときにはバックスラッシュ（`\`）で区切ります。
+```stata
+regress y x [pw=unwt]
+regress y x [pw=iptw]
+```
 
-なお、検定を自動で行なってくれますが、STROBEやCONSORTを考慮すると、この検定は不要と考えます。
+こうすれば、重み部分をローカルマクロで書き換えて、下記の様に書く事ができます。ローカルマクロ`` `w' ``に重み変数を入れてやればOKです.
 
-* bin = 二値変数（カイ2乗検定）
-* bine = 二値変数（Fisherの正確確率検定）
-* cat = カテゴリ変数（カイ2乗検定）
-* cate = カテゴリ変数（Fisherの正確確率検定）
-* contn = 連続変数（正規分布）
-* conts = 連続変数（歪んだ分布）
+```stata
+regress y x [pw=`w']
+```
 
-format()オプションで、表示する桁数などを指定します。`%9.2f`では、小数点下2桁まで表示させています。また、個別に指定したいときは、vars()オプション内に指定します。`smokeyrs conts %9.1f`とすると、smokeyrsは小数点下1桁の表示になります。
+## 操作（4） anPSeval.doを作成
+計算した傾向スコア（というか重み）を評価します。
 
-saving()オプションで、外部Excelに結果を書き出します。replaceを付けておくと、上書き保存になります。
-
-## 操作（5） anRegress.doを作成
-回帰分析／重回帰分析を実施します。`03. Inf Stat`にdoファイルを作成します。
+いくつかの外部コマンドを利用します。
 
 ```stata
 /**** ***** ***** ***** ***** ***** *****
 *
 * Stata Seminar 2022, NHEFS analysis 01
-* Descriptive Statistics
+* Propensity Score Evaluation
 *
 ***** ***** ***** ***** ***** ***** ****/
 version 17
 
-use nhefs_01, clear
+* データ読み込み
+use nhefs_02, clear
 
-local model_1 
-local model_2 i.sex age i.race i.education smokeintensity smokeyrs i.exercise i.active wt71
+* 外部コマンド
+// ssc install schemepack, replace // イケてる感じのグラフテーマ集
+// ssc install bihist, replace     // 上下に伸びるヒストグラム（ヒストグラムの比較に便利）
+// ssc install covbal, replace        // 変数バランスの確認
+// net install grc1leg.pkg, replace from(http://www.stata.com/users/vwiggins/)  // グラフの結合
+// net install gr0034.pkg, replace from(http://www.stata-journal.com/software/sj8-2/) // labmask
 
-regress wt82_71 qsmk ``1''
+* 事前設定
+set scheme white_tableau
+local wt unwt iptw // stdw ovlw
 
-* esttabを使って、回帰係数・信頼区間・p値を取得
-// net install st0085_2
-est store `1'
-qui esttab `1', ci 
-matrix `1' = r(coefs)[1,1..4]
 
-* 行と列の名前を設定
-matrix coleq   `1' = regress
-matrix rowname `1' = `1'
-```
-
-### ローカルマクロ`` `1' ``
-ここで登場する`` `1' ``について説明します。
-
-このdoファイルをmaster.doから呼び出すときに引数を付けていたことを思い出して下さい。この引数は、呼び出された側のdoファイル（ここではanRegress.do）に引き継がれます。1つめの引数は、呼び出された側ではローカルマクロ`` `1' ``となります。もし、2つめの引数があれば`` `2' ``です。
-
-今回master.doから呼び出す時に  
-`do anRegress model_1`  
-としていました。
-
-つまり、anRegressの中にマクロ名`` `1' ``で、コンテンツ`model_1`というローカルマクロが作られます。
-このローカルマクロ`` `1' ``は、下記で使われています。  
-``` regress wt82_71 qsmk ``1'' ```
-
-まず、Stataは、ローカルマクロを解釈し、内側からマクロ名をコンテンツに置き換えます。  
-``` regress wt82_71 qsmk ``1'' ```  
-このコマンドは、下記の様に解釈されます。  
-``` regress wt82_71 qsmk `model_1' ```  
-そして、マクロ名`` `model_1' ``は中身が定義されていませんので、  
-``` regress wt82_71 qsmk ```  
-このように解釈されます。つまり、model_1という引数をとると、粗解析モデルでregressが実行されます。
-
-次にmaster.doから呼び出す時には、  
-`do anRegress model_2`  
-としていました。
-
-ここで呼び出される際も、anRegressの中にマクロ名`` `1' ``で、コンテンツ`model_2`というローカルマクロが作られます。
-このローカルマクロ`` `1' ``は、下記で使われています。  
-``` regress wt82_71 qsmk ``1'' ```
-
-まず、Stataは、ローカルマクロを解釈し、内側からマクロ名をコンテンツに置き換えます。  
-``` regress wt82_71 qsmk ``1'' ```  
-このコマンドは、下記の様に解釈されます。  
-``` regress wt82_71 qsmk `model_2' ```  
-そして、マクロ名`` `model_2' ``は交絡要因のリストが格納されていますので、  
-``` regress wt82_71 qsmk i.sex age i.race i.education smokeintensity smokeyrs i.exercise i.active wt71 ```  
-このように解釈されます。つまり、model_2という引数をとると、調整モデルでregressが実行されます。
-
-このような方法で、1つのdoファイルで異なる挙動を取ることができます。
-
-### matrixコマンド
-ここで少しだけmatrixを使っています。
-
-esttabコマンドは、est storeで保存した結果を表記する便利なコマンドですが、（なぜか）信頼区間とp値のどちらかしか表記できません。両方を表示させたいときがありますが、そういうことには対応できません。
-
-また、因果推論を行う時に交絡の回帰係数は不要なので、削除しておきたいところです。
-
-こういった点は、コピペ後に操作（マウス操作で削除したり、追加したり）しても良いですが、できれば避けたいところです。
-
-ここでは、esttabが裏で作っているmatrixからいるところだけを抽出しています。
-
-`` matrix `1' = r(coefs)[1,1..4] ``このコマンドでesttabが作ったr(coefs)というmatrixの1行目の1列目～4列目を抽出しています。この中身は、regressコマンドの説明変数の1つめ（つまり、qsmk）の回帰係数・信頼区間下限・信頼区間上限・p値が格納されます。
-
-ローカルマクロ`` `1' ``は、マクロの中身であるmodel_1やmodel_2に置き換えられます。つまり、model_1やmodel_2という名前のmatrixが作られます。
-
-行列をあとでくっつけるのですが、その時のために、行列名を調整しています。
-
-行名はモデル名に変換し、列名に分析名（regress）が入るようにしています。
-
-## 操作（6） anRegress.doを作成
-do wtRegtoExcel 2
-
-```stata
-/**** ***** ***** ***** ***** ***** *****
-*
-* Result of Regression Matrix 
-*     to Excel table.
-*
-***** ***** ***** ***** ***** ***** ****/
-version 17
-
-matrix result = model_1
-forvalues x=2/`1' {
-   matrix rowjoin result = result model_`x'
+* 図示による傾向スコアの分布
+foreach w of local wt {
+	bihist ps [pw=`w'], by(qsmk) percent width(0.05) start(0) ///
+		tw( xtitle(Propensity Score) ytitle(Percent) ///
+			legend(row(2) order(2 1) label(1 "No Quit") label(2 "Quit"))) ///
+		name(`w'_hist, replace)
 }
 
-putexcel set Result_table2.xlsx, replace
-putexcel A1 = "model"
-putexcel B1 = "Coef"
-putexcel C1 = "95%CI"
-putexcel E1 = "p-value"
-putexcel A2 = matrix(result), nformat(#.000) rownames 
-putexcel save
+grc1leg unwt_hist iptw_hist,  ycommon position(3) name(comb_hist, replace)
+
+* 交絡要因のバランスについて確認
+foreach w of local wt {
+	covbal qsmk sex age race smokeintensity smokeyrs wt71 _I*, wt(`w') saving(bal_`w', replace)
+}
+
+* 交絡要因のバランスを図示
+capture frame change default
+capture frame drop covbal
+frame create covbal
+frame covbal {
+	use bal_unwt, clear
+	gen odr = _N - _n + 1
+	keep odr varname stdiff varratio
+	rename stdiff stdiff_unwt
+	rename varratio varratio_unwt
+	
+	merge 1:1 varname using bal_iptw
+	assert _merge == 3 // _merge==3以外があれば、何かおかしいのでassertで止める
+	drop _merge tr_mean tr_var tr_skew con_mean con_var con_skew
+	rename stdiff stdiff_iptw
+	rename varratio varratio_iptw
+	sort odr
+	
+	labmask odr, value(varname)
+	
+	/* カラーパレット設定
+	colorpalette hcl, select(1 6 9) nograph
+	local unadj `r(p1)'
+	local adj `r(p3)'
+	local zero `r(p2)'*/
+	
+	* 標準化差のグラフ
+	twoway ///
+		scatter odr stdiff_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+		scatter odr stdiff_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'") || ///
+		function y= 0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y=-0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y=0   , horizontal range(0 14) lcolor("`zero'")  ///
+		legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+		xtitle("Standardized Mean Difrences") title(Covariate Balance) ///
+		name(bal_smd, replace)
+	
+	* 分散比のグラフ
+	twoway ///
+		scatter odr varratio_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+		scatter odr varratio_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'")|| ///
+		function y=1.25, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y= 0.8, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y=   1, horizontal range(0 14) lcolor("`zero'")  ///
+		legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+		xscale(log) xlabel(0.7 0.8(0.2)1.0 1.25) xscale(extend) ///
+		xtitle("Variance Ratio, log-scale") title(Covariate Balance) ///
+		name(bal_vr, replace)
+}
 ```
 
-wtRegtoExcel.doは引数に数字の2を持っています（表に記載する層モデル数を表します）。
-putexcelコマンドで結果をExcelに書き込んでいます。
+かなり長大なdo-fileになりました（87行）。このうち39行目以降は、図示するためのコマンドです。そのうち、これをadoファイル化したいと思っています[^1]。
 
-ここまで作成して、master.doファイルを実行すると、結果ファイルが2つ出力されます。
+大きく4つのパートに分かれています。
 
-[^5]: Stataには結果書出しのためのコマンド（`esttab`や`outreg2`）がありますが、何か欲しいものと違うんですよ。なので、自分で調整しています。
+1. 事前設定
+2. 傾向スコア分布の群間差の図示
+3. 共変量バランスの評価・表記
+4. 共変量バランスの評価・図示
+
+### 傾向スコア分布の群間差の図示
+
+傾向スコアの分布については、ヒストグラムを用います。
+
+Rでは（Pythonでも）、上下に分かれるようなヒストグラムを描かれることが多くなっています。
+
+Stataでは、上下に分かれる「棒グラフ」は作れるのですが、上下に分かれるヒストグラムを標準で作成することができません。
+
+そのため、外部コマンドbihistを用います。
+
+```stata
+foreach w of local wt {
+	bihist ps [pw=`w'], by(qsmk) percent width(0.05) start(0) ///
+		tw( xtitle(Propensity Score) ytitle(Percent) ///
+			legend(row(2) order(2 1) label(1 "No Quit") label(2 "Quit"))) ///
+		name(`w'_hist, replace)
+}
+```
+
+ここでは`foreach`でループをかけていますが、重み付け無し（w=unwt）とIPTW（w=iptw）の二通りを行っています。nameオプションで、グラフに名前をつけています。名前を付けておけば、後で操作するときに便利なので、極力グラフにはnameオプションで名前を付けて下さい。
+bihistコマンドは、ややトリッキーでグラフのラベルやレジェンドについては、twオプション内に記載することになります。
+
+また2つのグラフを1つにまとめるために、grc1legという外部コマンドを利用します。標準では`graph combine`というコマンドでグラフをまとめることができるのですが、Legendをまとめてくれないという欠点があります。
+
+```stata
+grc1leg unwt_hist iptw_hist,  ycommon position(3) name(comb_hist, replace)
+```   
+
+このコマンドで下記の様なグラフが作成できます。
+
+![lec4_comb_hist](https://user-images.githubusercontent.com/67684585/215557178-09151815-effb-4e6f-9041-9414469743a3.png)
+
+左側（重み付け前）よりも右側（重み付け後）で上下のヒストグラムが揃っていることが分かるかと思います。
+
+### 共変量バランスの評価・表記
+
+評価には、標準化差と分散比を用いて行います。下記の基準に収まっているかどうか確認します。
+
+|評価指標|厳しい基準|緩い基準|
+|-|-|-|
+|標準化差|-0.1~+0.1|-0.25~+0.25|
+|分散比|0.8~1.25|0.5~2.0|
+
+ここでは`外部コマンドcovbal`を用いて評価します。
+
+`covbalコマンド`は、下記の様に使っています。
+
+```stata
+foreach w of local wt {
+	covbal qsmk sex age race smokeintensity smokeyrs wt71 _I*, wt(`w') saving(bal_`w', replace)
+}
+```
+
+`covbal`の1つめの変数に群分けする変数を入れます。ここでは`qsmk`です。
+
+2つめ以降の変数について、バランスを確認します。
+
+`` wt(`w')オプション ``は、共変量バランスを計算するときの重みを指定します。
+
+`saving()オプション` は、得られた表を外部にdtaファイルとして出力するためのオプションです。
+
+ところで、見慣れない変数名があります。`_I*`という変数は見慣れませんが、データセットには確かに存在しています。これらは何でしょうか。
+
+### `_I*`とはどのような変数か？
+ロジスティック回帰分析を行った時に`xi:`というプレフィックスコマンドを書いていました。
+
+Stataではダミー変数化するときに、その変数の前に`i.`をつけることで実行します。このときにStataは一時的に、`_I`から始まる名前のダミー変数を自動で作ります。
+
+例えば、`変数active`をダミー変数化するときには、`i.active`と記載します。そうすると、Stataは下記の様な変数を作ります。なお、変数activeは、0, 1, 2の3カテゴリを持っています。
+
+|ダミー変数|意味|
+|-|-|
+|`_Iactive_1`|active==1|
+|`_Iactive_2`|active==2|
+
+このダミー変数は、通常であれば解析終了後に自動で削除される一時的な変数です。これを後から利用する場合には、解析コマンドの前に`xi:`を使うことで、一時変数を残すことができます。
+
+`anPScalc.do`では、`` xi:logit qsmk `conf_var' ``のように`xi:`を使っていました。
+
+そして、`_I*`の`*`は、ワイルドカードです。ワイルドカードは、0文字以上の任意の文字と同値です。該当する変数を全て記載することと同等になります。
+
+ここでの`_I*`は、`_I`から始まる全ての変数をリストアップしていることと同等です。つまり、`xi:`で残したダミー変数全てと同じ意味になっています。
+
+
+
+
+[^1]:今世紀中を予定
