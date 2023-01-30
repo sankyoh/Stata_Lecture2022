@@ -375,8 +375,16 @@ esttabコマンドは、est storeで保存した結果を表記する便利な�
 
 行名はモデル名に変換し、列名に分析名（regress）が入るようにしています。
 
-## 操作（6） anRegress.doを作成
-do wtRegtoExcel 2
+## 操作（6） wtRegtoExcel.doを作成
+`anRegress.do`で作成したマトリクスを元に、Excelファイルに書き出します。
+
+`master.do`を作ったときには、引数を複数もつdo-fileを計画していましたが、引数1つで対応する方針としました。
+
+この方針転換は、`anRegress.do`を作成する過程でモデル名を数値のみで区別する形に変更したためです。つまり、model_1, model_2, ... , model_nという名称のみになうように自分ルール化してしまえば、nの部分だけを指定すれば、どのモデルの結果なのか明らかです。ルールに従わない名前を許容する場合は、モデル名すべてを引数にとる必要があります。
+
+ルールに従わないモデル名は、その名称だけでのようなモデルなのか分かるという反面、書出しdo-fileが煩雑になる可能性があります。例えば、model_crude, model_adjusted, model_full_adjustなどの名称を使うと、これらに対する汎用的な処理を記載する必要があります。
+
+ここでは、「どうせモデルの個数はそこまで多くならない」という目論見の元、数字のみでモデルを示すことにしています。
 
 ```stata
 /**** ***** ***** ***** ***** ***** *****
@@ -397,14 +405,27 @@ putexcel A1 = "model"
 putexcel B1 = "Coef"
 putexcel C1 = "95%CI"
 putexcel E1 = "p-value"
-putexcel A2 = matrix(result), nformat(#.000) rownames 
+putexcel A2 = matrix(result), nformat(0.000) rownames 
 putexcel save
 ```
 
-wtRegtoExcel.doは引数に数字の2を持っています（表に記載する層モデル数を表します）。
+`wtRegtoExcel.do`は引数に数字の`2`を持っています（表に記載する層モデル数を表します）。
+
+まず、`forvalues`ループを用いて、複数のモデルの結果を格納したマトリクスを1つのマトリクスに結合します。
+
+ここでは、`matrix rowjoin`コマンドを使って、縦に繋げています。参考までに`matrix coljoin`では横に繋げる事ができます。
+
 putexcelコマンドで結果をExcelに書き込んでいます。
 
+* putexcel set ファイル名, replace // ファイル名のExcelファイルを作成
+* putexcel セル名 = 内容 // セル名の所に内容を書き込み（文字でも数字でも良い）
+* putexcel セル名 = matrix(マトリクス名) // マトリクスをまるごとセル名の所に書込み、オプションで数値の小数点下の数字個数や列名・行名も貼り付けるか選択できる。
+* putexcel save // ファイルへの書込みを終了し、セーブする。
+
 ここまで作成して、master.doファイルを実行すると、結果ファイルが2つ出力されます。
+
+### QUIZ
+上記の`wtRegtoExcel.do`のコードでは、引数によってはエラーを発生させる可能性が残っています。どのような引数で、エラーを起こすでしょうか？
 
 [^1]: このタイミングで適当なところに作成して下さい。
 [^2]: 日本語訳はまだありませんが、Modern Epidemiology 4th Edの訳本では「推定目標」と訳されています。
