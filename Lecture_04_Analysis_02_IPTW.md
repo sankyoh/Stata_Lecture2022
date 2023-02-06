@@ -195,12 +195,12 @@ version 17
 * データ読み込み
 use nhefs_01, clear
 
-local conf_var  sex age race i.education smokeintensity smokeyrs i.exercise i.active wt71
+local conf_var1  sex age race i.education smokeintensity smokeyrs i.exercise i.active wt71
 local conf_var2 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
 c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71
 
 * Conditional probability of Quit smoking
-xi:logit qsmk `conf_var'
+xi:logit qsmk `conf_var1'
 predict ps, pr
 
 * Unconditional probability of Quit smoking
@@ -227,17 +227,17 @@ save nhefs_02, replace
 ```
 重み付けのための「重み」をいくつか計算しています。今回は、iptw以外は気にしないで下さい。
 
-傾向スコアや重みの計算が終わったデータを新しい名前で保存します。**元の名前では保存しません。**
+傾向スコアや重みの計算が終わったデータを新しい名前で保存します。**元と名前でデータセットファイルを保存しません。**
 
 ### 傾向スコアの計算 
 
 `local`コマンドで、条件付ける変数を指定しています。
 
-`conf_var`では、一次項のみですが、`conf_var2`では二乗項や交互作用項も含んでいます。後から見るとおり、後者でよりよいバランス調整になります。
+`ローカルマクロconf_var1`では、一次項のみですが、`ローカルマクロconf_var2`では二乗項や交互作用項も含んでいます。後から見るとおり、後者でよりよいバランス調整になります。
 
-* ``xi:logit qsmk `conf_var' ``
+* ``xi:logit qsmk `conf_var1' ``
 
-後から、このコマンドの`` `conf_var' ``部分を変更することで、`conf_var2`の場合のバランスを確認します。
+後から、このコマンドの`` `conf_var1' ``部分を変更することで、`conf_var2`の場合のバランスを確認します。
 
 * `predict ps, pr`
 * 
@@ -388,10 +388,72 @@ frame covbal {
 
 大きく4つのパートに分かれています。
 
-1. 事前設定
+1. 外部コマンドのインストール／事前設定
 2. 傾向スコア分布の群間差の図示
 3. 共変量バランスの評価・表記
 4. 共変量バランスの評価・図示
+
+### 外部コマンドのインストール
+いくつかの外部コマンドのインストールを行っています。すでにインストール済みであれば、この操作は不要です。
+
+SSCに登録されている外部コマンドは、`ssc installコマンド`でインストールすることができます。
+SSCは、[Statistical Software Components](https://ideas.repec.org/s/boc/bocode.html)の略名です。このサイトはボストン大学経済学部のボランティアによって運営あれています。
+
+今回は、下記の3コマンドをインストールします。
+```
+ssc install schemepack, replace // イケてる感じのグラフテーマ集
+ssc install bihist, replace     // 上下に伸びるヒストグラム（ヒストグラムの比較に便利）
+ssc install covbal, replace        // 変数バランスの確認
+```
+
+`schemepackコマンド`は、グラフテーマ集になっています。近年、TableauやRのggplotなどのグラフテーマが広く使われています。視認性の向上のために、このコマンドをインストールします。
+
+`bihistコマンド`は、上下に伸びるヒストグラムです。2つのヒストグラムの形状を比較するときに比較しやすくするために必要です。
+
+`covbalコマンド`は、指定した共変量バランスを標準化差や分散比として算出し、作表します。
+
+SSCに登録されていないコマンドは、`net installコマンド`でインストールします。こちらの方法では、ネットのどこからインストールするかを指定する必要があります。指定していない場合は、ネットワーク上のカレントアドレスからインストールを試みます（一般に失敗します）。
+
+```
+net install grc1leg.pkg, replace from(http://www.stata.com/users/vwiggins/)  // グラフの結合
+net install gr0034.pkg, replace from(http://www.stata-journal.com/software/sj8-2/) // labmask
+```
+
+`grc1legコマンド`は、複数のグラフを1つにまとめるときに、legendが重複するのを避けるためのコマンドです。通常は`graph combine`で複数のグラフを1つにまとめますが、legendがあるとそれらをそのままの状態でまとめてしまいます。同じLegendが1つの図にあるのは、あまり美しくありません。
+
+`labmaskコマンド`は、ある変数の値または値ラベルを別の変数の値ラベルとして代入します。言葉では意味が分かりにくいので、実例を示します。
+
+下記の様な変数x1と変数x2が合ったとします（x1はint型でx2はstring型です）。
+
+| x1 | x2 |
+|-|-|
+|1|Argentina|
+|1|Argentina|
+|1|Argentina|
+|2|Uruguay|
+|2|Uruguay|
+
+このときに、x1にx2に相当するラベルを貼りたいとします。国名が2つだけなら、下記のコードで対応可能です。
+
+```
+label define country 1 "Argentina" 2 "Uruguay"
+label values x1 country
+```
+
+しかし、これで国名が200くらいになると、`label defineコマンド`で対応するのは大変です。誤りも生じると思います。
+
+このような場合に対応するのが`labmaskコマンド`です。
+
+```
+labmask x1, values(x2)
+```
+
+[参考Statalist](https://www.statalist.org/forums/forum/general-stata-discussion/general/1599540-values-of-a-variable-as-label-of-values-of-other-variable)
+
+### 事前設定
+事前設定として、使用するグラフテーマを指定しています。この指定がないとStataでは`s2color`というテーマを使用します。
+
+また、localコマンドでローカルマクロwtを設定しています。
 
 ### 傾向スコア分布の群間差の図示
 
@@ -401,7 +463,7 @@ Rでは（Pythonでも）、上下に分かれるようなヒストグラムを�
 
 Stataでは、上下に分かれる「棒グラフ」は作れるのですが、上下に分かれるヒストグラムを標準で作成することができません。
 
-そのため、外部コマンドbihistを用います。
+そのため、外部コマンド`bihist`を用います。
 
 ```stata
 foreach w of local wt {
@@ -411,6 +473,8 @@ foreach w of local wt {
 		name(`w'_hist, replace)
 }
 ```
+
+`ローカルマクロwt`にはグラフ描画する重み変数を格納しています。この`wt`でループを大鳴っています。
 
 ここでは`foreach`でループをかけていますが、重み付け無し（w=unwt）とIPTW（w=iptw）の二通りを行っています。nameオプションで、グラフに名前をつけています。名前を付けておけば、後で操作するときに便利なので、極力グラフにはnameオプションで名前を付けて下さい。
 bihistコマンドは、ややトリッキーでグラフのラベルやレジェンドについては、twオプション内に記載することになります。
@@ -476,15 +540,12 @@ Stataではダミー変数化するときに、その変数の前に`i.`をつ�
 
 ここでの`_I*`は、`_I`から始まる全ての変数をリストアップしていることと同等です。つまり、`xi:`で残したダミー変数全てと同じ意味になっています。
 
-### 共変量バランスの評価・図示
+### conf_var1の評価
 
+ここまで、`conf_var1`（2乗項や交互作用項がない）で計算した傾向スコアを元にしたiptwでバランスがとれたか確認しました。
 
-共変量バランス（標準化差）
+全ての変数で、基準値をクリアしていることが分かりました。
 
-![lec4_bal_smd](https://user-images.githubusercontent.com/67684585/215559420-f4315d29-f37f-4e1b-bb3e-42fa0bd50a79.png)
-
-共変量バランス（分散比）
-
-![lec4_bal_vr](https://user-images.githubusercontent.com/67684585/215559607-192aac17-d797-4b5f-b7b9-c27bc0785301.png)
+しかし、`conf_var2`（2乗項や交互作用項がある）で計算した方がよりバランスがとれるかもしれません。それを確かめていきたいと思います。
 
 [^1]:今世紀中を予定
