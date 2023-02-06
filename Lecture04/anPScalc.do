@@ -38,4 +38,4 @@ label variable ovlw "Overlap Weight" // 参考・今回は使わない
 * 新しいデータセットとしてセーブ
 compress
 label data "nhefs_01 + PS & IPTW"
-save nhefs_02, replace
+save nhefs_ps, replace
