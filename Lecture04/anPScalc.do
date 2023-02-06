@@ -15,7 +15,7 @@ c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71
 
 
 * Conditional probability of Quit smoking
-xi:logit qsmk `conf_var2'
+xi:logit qsmk `conf_var1'
 predict ps, pr
 
 * Unconditional probability of Quit smoking
