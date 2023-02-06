@@ -1,4 +1,7 @@
 # 2022年度のStata講義
+2023/01/10 ~ 2023/3/14：全9回
+（2023/03/07はイチロー先生講義のため休講）
+
 ## Lecture 01. Introduction 
 date("10Jan2023", "DMY")
 * 全体の目標やProgramingの意義など
@@ -16,8 +19,14 @@ date("24Jan2023", "DMY") - date("31Jan2023", "DMY")
 * 引数を用いて1つのdo-fileで複数の挙動をとる。
 
 ## Lecture 04. Analysis Project
-date("31Jan2023", "DMY")
+date("31Jan2023", "DMY") - date("07Feb2023", "DMY")
 * NHEFSデータを用いたIPTW分析
 * Project fileに追加していく。
 * 傾向スコアの算出
-* 傾向スコアバランスの確認・図示
+* 傾向スコアバランスの確認
+
+## Lecture 05. Analysis Project
+date("07Feb2023", "DMY")
+* 「最良」の傾向スコアの計算方法を探索する
+* 共変量バランスのチェック
+* 共変量バランスの図示
