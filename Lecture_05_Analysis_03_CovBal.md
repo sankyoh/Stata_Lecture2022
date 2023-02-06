@@ -29,12 +29,11 @@ do crDataset
 * 記述統計
 do anDesStat
 
-
-* 傾向スコア・IPTW算出
-// do anPScalc
-
 * 傾向スコア探索 // 追記箇所
 do anPSexplore
+
+* 傾向スコア・IPTW算出
+do anPScalc
 
 * 傾向スコア・IPTWの評価
 do anPSeval
@@ -63,7 +62,7 @@ do wtRegtoExcel 3 // 3に書き換えた。
 
 ## anPSexploreの全体像
 
-最良のPSの計算方法を（出来るだけ楽に）探索するためのdo fileを作成します。
+最良のPSの計算方法を（出来るだけ楽に）探索するためのdo fileを作成します。（プロジェクトファイルの`03. PS`グループに新規ファイルを追加してください）
 
 試行錯誤の過程が完全に自動化すれば、美味しいのですが、そこまでは難しいです。
 
@@ -112,7 +111,7 @@ forvalues i=1/2 {
 	
 	* absolute SMDチェック
 	forvalues x=1/`r(varcnt)'{
-		local t :display r(table)[`x',7]
+		local t=r(table)[`x',7]
 		if(`t'<-0.1 | 0.1<`t'){
 			display "ASD is violated - `x' variable"
 		}
@@ -123,7 +122,7 @@ forvalues i=1/2 {
 
 	* VRチェック
 	forvalues x=1/`r(varcnt)'{
-		local t :display r(table)[`x',8]
+		local t=r(table)[`x',8]
 		if(`t'<0.8 | 1.25<`t'){
 			display "VR is violated - `x' variable"
 		}
@@ -239,15 +238,129 @@ r(varcnt)には、covbalによって作られるStored resultの1つです。バ
 
 `r(table)`は、14変数×8項目の結果表となっています。このうち、7列目が標準化差（の絶対値）で、8列目が分散比になっています。
 
-ループにつかっている`ローカルマクロx`は、1から14までの値をとりますので、`` r(table)[`x', 7] ``は、
+ループにつかっている`ローカルマクロx`は、1から14までの値をとりますので、`` r(table)[`x', 7] ``は、下記の様な意味になっています。
 
 |`x'の値=周回| r(table)[`x', 7] |意味|
 |-|-|-|
 |1|r(table)[1,7]|変数sexの標準化差|
 |2|r(table)[2,7]|変数ageの標準化差|
 |3|r(table)[3,7]|変数raceの標準化差|
+|...|...|...|
 |14|r(table)[14,7]|変数_Iactive_2の標準化差|
 
+その後の`if`と`else`で分岐を行っています。
 
+最初の`` if(0.1<`t') ``の条件に当てはまれば、最初の`{  }`内の動作を実行し、それでなければ`else`の中括弧部分の動作を実行します。
 
+ifの{}では条件をクリアしなかったことが表示されます。また、今回はelse部の動作はコメントアウトしています（ほとんどの変数で条件をクリアしているので、表示が煩雑になるため）。
 
+分散比のチェックに関するコードもほぼ同様のコードになっています。
+
+最後に、標準化差の絶対値の平均値を表示しています。
+
+```
+* 標準化差の絶対値の平均値を表示
+di "mean ASD = `r(masd)'"
+```
+
+`r(masd)`は、covbalのStored resultsで標準化差の絶対値の平均値が格納されています。
+
+なお、多分バグかヘルプファイルの記載ミスだと思いますが、covbalでabsオプションを付けずにr(masd)を表示させると、標準化差の平均値（絶対値の平均値ではなく）が表示されます。
+
+## このコードで「最良」をどう探すか？
+「候補の設定」部分に良さそうなものを追記します。
+
+例えば、conf_var3を追記し、kouho=3としました。
+
+conv_var3では、`c.age#c.wt71 c.age#active c.age#exercise c.age#education`の3つの交互作用項を追加しました。
+
+```
+* 候補の設定
+local kouho=3
+local conf_var1  sex age race i.education smokeintensity smokeyrs i.exercise i.active wt71
+local conf_var2 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
+c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71
+local conf_var3 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
+c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71 c.age#c.wt71 c.age#active ///
+c.age#exercise c.age#education　
+```
+
+候補の設定部**のみ**を変更して、anPSexploreを実行すると、下記の様になり、conf_var3が最良のようです。
+
+|conf_var| SMD条件 | VR条件 | ASMDの絶対値 |
+|-|-|-|-|
+|1|クリア|クリアならず|0.0189|
+|2|クリア|クリア|0.0140|
+|3|クリア|クリア|0.0113|
+
+さらに良い物は無いかと考え、人種と教育の交互作用項`race#education`を追加しました。
+
+```
+local kouho=4
+// 中略
+local conf_var4 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
+c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71 c.age#c.wt71 c.age#active ///
+c.age#exercise c.age#education race#education
+```
+
+これで、実行します。
+
+|conf_var| SMD条件 | VR条件 | ASMDの絶対値 |
+|-|-|-|-|
+|1|クリア|クリアならず|0.0189|
+|2|クリア|クリア|0.0140|
+|3|クリア|クリア|0.0113|
+|4|クリア|クリア|0.0136|
+
+しかし、やや悪くなってしまったようです。
+
+いろいろ試行錯誤してみると、下記で0.0112になります。
+
+```
+local conf_var5 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
+c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71 c.age#c.wt71 c.age#active ///
+c.age#exercise c.age#education race#c.wt7 
+```
+
+|conf_var| SMD条件 | VR条件 | ASMDの絶対値 |
+|-|-|-|-|
+|1|クリア|クリアならず|0.0189|
+|2|クリア|クリア|0.0140|
+|3|クリア|クリア|0.0113|
+|4|クリア|クリア|0.0136|
+|5|クリア|クリア|0.0112|
+
+なので、この方針で進めたいと思います。
+
+# 探索した結果をanPScalcに記載する。
+anPSexploreで良い感じの計算方法が見つかったので、anPScalcのlocal
+
+anPScalsの編集箇所（冒頭箇所）
+```
+* データ読み込み
+use nhefs_01, clear
+
+local conf_var1 sex race c.age##c.age i.education c.smokeintensity##c.smokeintensity ///
+c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71 c.age#c.wt71 c.age#active ///
+c.age#exercise c.age#education race#c.wt7 
+```
+
+この部を変更して、anPScalcを実行すれば、（たぶん）「最良」の傾向スコアが算出できます。
+
+また、これに合わせて、master.doでは、anPSexploreをコメントアウトします。傾向スコアの探索を行わなければ、このdoファイルの役目はおわりです。
+
+```
+* 傾向スコア探索 // 追記箇所
+// do anPSexplore
+```
+
+# 再度、anPSeval.doを実行する。
+## 共変量バランスの評価・図示
+
+共変量バランス（標準化差）
+
+![lec4_bal_smd](https://user-images.githubusercontent.com/67684585/215559420-f4315d29-f37f-4e1b-bb3e-42fa0bd50a79.png)
+
+共変量バランス（分散比）
+
+![lec4_bal_vr](https://user-images.githubusercontent.com/67684585/215559607-192aac17-d797-4b5f-b7b9-c27bc0785301.png)
