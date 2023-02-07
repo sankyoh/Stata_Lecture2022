@@ -94,7 +94,7 @@ c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71
 
 
 * 探索
-forvalues i=1/2 {
+forvalues i=1/`kouho' {
 	* 傾向スコア計算
 	qui xi:logit qsmk `conf_var`i''
 	predict ps`i', pr
