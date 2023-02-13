@@ -333,7 +333,7 @@ c.age#exercise c.age#education race#c.wt7
 なので、この方針で進めたいと思います。
 
 # 探索した結果をanPScalcに記載する。
-anPSexploreで良い感じの計算方法が見つかったので、anPScalcのlocal
+anPSexploreで良い感じの計算方法が見つかったので、anPScalcのlocalに最良だった計算方法をコピペします。
 
 anPScalsの編集箇所（冒頭箇所）
 ```
@@ -345,9 +345,9 @@ c.smokeyrs##c.smokeyrs i.exercise i.active c.wt71##c.wt71 c.age#c.wt71 c.age#act
 c.age#exercise c.age#education race#c.wt7 
 ```
 
-この部を変更して、anPScalcを実行すれば、（たぶん）「最良」の傾向スコアが算出できます。
+この部を変更して、anPScalcを実行すれば、（現状の探索の範囲において[^1]）「最良」の傾向スコアが算出できます。
 
-また、これに合わせて、master.doでは、anPSexploreをコメントアウトします。傾向スコアの探索を行わなければ、このdoファイルの役目はおわりです。
+また、これに合わせて、master.doでは、anPSexploreをコメントアウトします。傾向スコアの探索を行わなければ、このdoファイルの役目はおわりです。`master.do`ファイルからは、コメントアウトしておきます。
 
 ```
 * 傾向スコア探索 // 追記箇所
@@ -355,12 +355,281 @@ c.age#exercise c.age#education race#c.wt7
 ```
 
 # 再度、anPSeval.doを実行する。
-## 共変量バランスの評価・図示
 
-共変量バランス（標準化差）
+最良の方法で傾向スコアを計算しなおしたので、`anPSval.do`で傾向スコア（によって計算されたIPTW）について評価をし直します。
+
+## 傾向スコアの図示（再）
+```
+local wt unwt iptw
+
+* 図示による傾向スコアの分布
+foreach w of local wt {
+	bihist ps [pw=`w'], by(qsmk) percent width(0.05) start(0) ///
+		tw( xtitle(Propensity Score) ytitle(Percent) ///
+			legend(row(2) order(2 1) label(1 "No Quit") label(2 "Quit"))) ///
+		name(`w'_hist, replace)
+}
+
+grc1leg unwt_hist iptw_hist,  ycommon position(3) name(comb_hist, replace)
+```
+
+ローカルマクロ`wt`として、`unwt iptw`が定義されていますので、`foreach`ループの1周目では`w=unwt`として実行され、2周目では`w=iptw`として実行されます。
+
+つまり、「重み付けなし」と「IPTWによる重み付け」でグラフを描画します。
+
+## 共変量バランスの評価・図示
+### 表による評価（再）
+今度は、個々の変数について評価を行います。
+```
+* 交絡要因のバランスについて確認
+foreach w of local wt {
+	covbal qsmk sex age race smokeintensity smokeyrs wt71 _I*, wt(`w') saving(bal_`w', replace)
+}
+```
+外部コマンド`covbal`において、`saving`というオプションを付けています。このオプションをつけると、結果として得られた表を`dtaファイル`形式で書き出します。
+
+このコマンドを実行すると、カレントディレクトリ（プロジェクトファイルがあるフォルダ）に、`bal_unwt.dta`と`bal_iptw.dta`というStataデータ形式のファイルが生成されます。
+
+この内容が、bal_unwt.dtaとして保存されています。
+![image](https://user-images.githubusercontent.com/67684585/218557045-40260d15-5ec4-47b1-95cb-56d193d6c10b.png)
+
+こちらの重み付けを行った際の内容は、bal_iptw.dtaとして保存されています。
+![image](https://user-images.githubusercontent.com/67684585/218557216-99456f11-fd22-4771-9be0-153fb11473f1.png)
+
+ここでわざわざ、データとして保存したのは、この次の作図を円滑に行うためです。
+
+### 共変量バランスの図示
+共変量バランスの図示には、ドットを利用したプロットが有用です。
+
+Rでは比較的簡単に作図できますが、Stataには専用のコマンドが（現状では）用意されていませんので、工夫しながら描画します。
+
+完成予想図は下記の様になっています。
+
+#### 共変量バランス（標準化差）
 
 ![lec4_bal_smd](https://user-images.githubusercontent.com/67684585/215559420-f4315d29-f37f-4e1b-bb3e-42fa0bd50a79.png)
 
-共変量バランス（分散比）
+#### 共変量バランス（分散比）
 
 ![lec4_bal_vr](https://user-images.githubusercontent.com/67684585/215559607-192aac17-d797-4b5f-b7b9-c27bc0785301.png)
+
+#### 作図コマンド
+
+```
+* 交絡要因のバランスを図示
+capture frame change default
+capture frame drop covbal
+frame create covbal
+frame covbal {
+	use bal_unwt, clear
+	gen odr = _N - _n + 1
+	keep odr varname stdiff varratio
+	rename stdiff stdiff_unwt
+	rename varratio varratio_unwt
+	
+	merge 1:1 varname using bal_iptw
+	assert _merge == 3 // _merge==3以外があれば、何かおかしいのでassertで止める
+	drop _merge tr_mean tr_var tr_skew con_mean con_var con_skew
+	rename stdiff stdiff_iptw
+	rename varratio varratio_iptw
+	sort odr
+	
+	labmask odr, value(varname)
+	
+	/* カラーパレット設定
+	colorpalette hcl, select(1 6 9) nograph
+	local unadj `r(p1)'
+	local adj `r(p3)'
+	local zero `r(p2)'*/
+	
+	* 標準化差のグラフ
+	twoway ///
+		scatter odr stdiff_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+		scatter odr stdiff_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'") || ///
+		function y= 0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y=-0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y=0   , horizontal range(0 14) lcolor("`zero'")  ///
+		legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+		xtitle("Standardized Mean Difrences") title(Covariate Balance) ///
+		name(bal_smd, replace)
+	
+	* 分散比のグラフ
+	twoway ///
+		scatter odr varratio_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+		scatter odr varratio_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'")|| ///
+		function y=1.25, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y= 0.8, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+		function y=   1, horizontal range(0 14) lcolor("`zero'")  ///
+		legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+		xscale(log) xlabel(0.7 0.8 1.0 1.25 1.5) xscale(extend) ///
+		xtitle("Variance Ratio, log-scale") title(Covariate Balance) ///
+		name(bal_vr, replace)
+}
+```
+
+##### frameの利用
+ここでまず、`frame`コマンドを利用しています。
+
+```
+capture frame change default
+capture frame drop covbal
+frame create covbal
+frame covbal {
+    様々なコマンド
+}
+```
+
+Stataでは、複数のデータを（仮想的に？）同時に扱う事ができるようになりました。これを「フレーム」を切り替えて使います。`frame change フレーム名`というコマンドで、指定したフレームを利用できる状態になります。
+
+最初から使っているフレームは`default`という名前が付いています。まず、何らかの操作によって、違うフレームを使っているとdoファイルが想定通りに動かないことがありますので、`capture frame change default`というコマンドで、最初から使っているフレームに戻るようにします。
+
+次に、`covbal`というフレームを作るのですが、既に作っていると、エラーが起きますので、一旦削除を行います。削除を行うのは`frame drop フレーム名`です。ここでは`capture frame drop covbal`としています。このように頭に`capture`をつけることで、covbalフレームが存在しないというエラーが発生しても、Stataは先に進んでくれます。
+
+そして、ようやく新しいフレームを作ります。`frame create フレーム名`で新しいフレームを作ることができます。ここでは`frame create covbal`としています。
+
+新しく作ったcovbalフレームを操作するには、2通りの方法があります。
+
+1. `frame change covbal`を実行する
+2. `frame covbal { 操作 }`といいうように中括弧を使う。
+
+今回は、後者を利用しています。
+
+#### 描画準備
+
+covbalフレームで操作を開始します。
+
+最初は描画しやすくなるように、データを操作します。
+
+```
+use bal_unwt, clear
+gen odr = _N - _n + 1
+keep odr varname stdiff varratio
+rename stdiff stdiff_unwt
+rename varratio varratio_unwt
+
+merge 1:1 varname using bal_iptw
+assert _merge == 3 // _merge==3以外があれば、何かおかしいのでassertで止める
+drop _merge tr_mean tr_var tr_skew con_mean con_var con_skew
+rename stdiff stdiff_iptw
+rename varratio varratio_iptw
+sort odr
+
+labmask odr, value(varname)
+```
+
+最初に、重み付けなしにおける標準化差・分散比が格納されたデータセットを読み込みます。`use bal_unwt, clear`。
+
+![image](https://user-images.githubusercontent.com/67684585/218561904-cbbf9055-2236-476d-b9fb-d56472e31f03.png)
+
+そのあと、変数`odr`を作成します。これは、変数の表示順をしていするための変数です。
+
+```
+gen odr = _N - _n + 1
+```
+
+Stataにおいて、`_N`は、観察数（症例数）を表します。今回では`_N=14`です。`_n`は、各観察番号を表します。`sex`の行であえば、`_n=1`ですし、`age`の行であれば`_n=2`になります。
+
+このため、`odr = _N - _n + 1`という計算式は、上から順に14, 13, 12, 11, 10, ...2, 1という値になります。
+
+![image](https://user-images.githubusercontent.com/67684585/218562676-02564ec7-f023-49cf-a600-38cd471752a1.png)
+
+そして、必要な変数以外を削除します。`keep odr varname stdiff varratio`
+
+また、この後でbal_iptwとマージするので、変数名をunwt由来のものだと分かるように変更しておきます。
+```
+rename stdiff stdiff_unwt
+rename varratio varratio_unwt
+```
+
+ここまでできた所です。
+
+![image](https://user-images.githubusercontent.com/67684585/218563070-1aa7c4b3-894a-45e2-91bf-4e3f3605931c.png)
+
+次に、iptwで重み付けた結果（標準化差・分散比）を結合させます。
+
+```
+merge 1:1 varname using bal_iptw
+assert _merge == 3
+```
+
+mergeが実行されると、`_merge`という変数が作成され、過不足なく結合すると全ての行で`_merge=3`となります。
+
+今回は、14行の結合がぴったりとできるはずなので、`_merge=3`以外の値はないはずです。そのチェックを行うために、`assert _merge=3`というコマンドを書いています。このコマンドは、条件に当てはまらない行が1つでもあると、エラーを吐き出します。（doファイルはそこで止ります）
+
+`assert`コマンドでマージがうまくできたことを確認したので、先に進みます。
+
+```
+drop _merge tr_mean tr_var tr_skew con_mean con_var con_skew
+rename stdiff stdiff_iptw
+rename varratio varratio_iptw
+sort odr
+```
+
+不要な変数を削除し、標準化差・分散比についてiptw由来であることが分かるように変数名を変更します。
+
+あと、odr順に並び替えを行いました。
+
+![image](https://user-images.githubusercontent.com/67684585/218564317-0c7227fa-33ae-4ead-b4da-78b3ee435bab.png)
+
+これで、odrを縦軸とし、標準化差や分散比を横軸とする散布図を描けば、望む物が得られます。
+
+ただ、完成図のように、縦軸を数字ではなく変数名にしたいと思います。しかし、varname変数はstr型ですので、グラフには使えません。
+
+そこで、int変数odrに、str変数varrnameの値をラベルとして貼り付けます。
+
+このためのコマンドがlabmaskです。
+
+```
+labmask odr, value(varname)
+```
+
+変数odrにvarnameの値と同じ名称を持つラベルが貼られた所です。
+![image](https://user-images.githubusercontent.com/67684585/218565189-8fd33756-6a39-4cc0-98af-3fcb24659a48.png)
+
+list, nolとすると、変数odrが依然として数値をもっていることがわかります。
+
+#### 描画（標準化差）
+
+```
+twoway ///
+    scatter odr stdiff_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+    scatter odr stdiff_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'") || ///
+    function y= 0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y=-0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y=0   , horizontal range(0 14) lcolor("`zero'")  ///
+    legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+    xtitle("Standardized Mean Difrences") title(Covariate Balance) ///
+    name(bal_smd, replace)
+```
+
+`twoway`による描画コマンドです。
+
+最初2つのscatterでは、重み付けなしの場合の散布図とIPTW重み付けの時の散布図を描いています。
+
+ylabel(14(1)1, valuelabel)というオプションにより、変数順を指定し、軸にodrの値を表示するのでは無く、odrの値ラベルを表示する、という指定になっています。
+
+mcolorでドットの色を指定していますが、特段の指定がなければ、標準色が適応されます。
+
+3行目～5行目では、縦線を描画しています。真ん中（x=0）の線と基準範囲となる線（x=-0.1とx=0.1）です。
+
+最後の3行では、legendやタイトルなどを指定し、グラフの名称を付けて終了しています。
+
+
+#### 描画（分散比）
+
+```
+twoway ///
+    scatter odr varratio_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+    scatter odr varratio_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'")|| ///
+    function y=1.25, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y= 0.8, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y=   1, horizontal range(0 14) lcolor("`zero'")  ///
+    legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+    xscale(log) xlabel(0.7 0.8 1.0 1.25 1.5) xscale(extend) ///
+    xtitle("Variance Ratio, log-scale") title(Covariate Balance) ///
+    name(bal_vr, replace)
+```
+
+基本的には、標準化差のグラフと同様ですが、相違点として、xscale(log)を付けて、横軸を対数軸にしています。これは、「比」であるためです。
+
+[^1]:候補の変数に対して全検索をかければ、真の最良が見つけられますが、そこまでしなくても良いかも。
