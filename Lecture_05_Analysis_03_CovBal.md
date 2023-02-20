@@ -606,9 +606,48 @@ twoway ///
 
 最初2つのscatterでは、重み付けなしの場合の散布図とIPTW重み付けの時の散布図を描いています。
 
-ylabel(14(1)1, valuelabel)というオプションにより、変数順を指定し、軸にodrの値を表示するのでは無く、odrの値ラベルを表示する、という指定になっています。
+```
+scatter odr stdiff_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+scatter odr stdiff_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'") || ///
+```
+
+縦軸に`odr`を使用し、横軸に`stdiff_unwt`または`stdiff_iptw`を指定した散布図を描いています。
+
+ylabel(14(1)1, valuelabel)というオプションにより、変数順を指定し、軸にodrの値（1から14）を表示するのでは無く、odrの値ラベルを表示する、という指定になっています。さっき`labmask`を実行したように変数名が縦軸に表示されます。
 
 mcolorでドットの色を指定していますが、特段の指定がなければ、標準色が適応されます。
+
+#### 補遺）カラーパレット
+突然にローカルマクロ`` `unadj' ``と`` `adj' ``が出てきました。
+
+コメントアウトしていますが、こっそりと下の様なコマンドを作っていました。
+```
+/* カラーパレット設定
+colorpalette hcl, select(1 6 9) nograph
+local unadj `r(p1)'
+local adj `r(p3)'
+local zero `r(p2)'*/
+```
+
+`colorpalette`というコマンドを使うことで、良い感じのテーマ色を選択することが出来ます。
+
+上記では、`hcl`というカラーパレットから、1色目、6色目、9色目を取り出しています。そして、localコマンドで、unadjに1色目を割当て、adjに9色目を割当て、zeroに6色目を割り当てています。
+
+どんな感じの色なのか確かめるのには、下記コマンドで実行可能です。
+```
+colorpalette hcl
+```
+
+インストールは、下記で可能です。
+```
+net install gr0075, from(http://www.stata-journal.com/software/sj18-4) replace
+```
+
+また、これに関する論文がStata Journalに載っています。
+[Color palettes for Stata graphics](https://www.stata-journal.com/article.html?article=gr0075)
+
+
+
 
 3行目～5行目では、縦線を描画しています。真ん中（x=0）の線と基準範囲となる線（x=-0.1とx=0.1）です。
 
