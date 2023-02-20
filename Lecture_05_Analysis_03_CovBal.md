@@ -620,12 +620,45 @@ mcolorでドットの色を指定していますが、特段の指定がなけ�
 3行目～5行目では、縦線を描画しています。真ん中（x=0）の線と基準範囲となる線（x=-0.1とx=0.1）です。
 
 ```
-    function y= 0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
-    function y=-0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
-    function y=0   , horizontal range(0 14) lcolor("`zero'")  ///
+function y= 0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+function y=-0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+function y=0   , horizontal range(0 14) lcolor("`zero'")  ///
 ```
 
+`twoway`コマンドで重ね描きできるサブコマンドの1つに`function`があります。このコマンドは数式を入れるとその数式を描画してくれます。
+
+数式は、$$y=f(x)$$の形式で書く必要があるので、y軸に並行な直線は（本来）引くことができません。そのような$$x=f(y)$$で表されるグラフを描画するときには、一旦$$y=f(x)$$の形式でグラフを指定し、オプションに`horizontal`を指定すると必要なグラフが描画できます。
+
+その他のオプションは、描画範囲を指定する`range()`、曲線／直線の色を指定する`lcolor()`、曲線／直線の形状を指定する`lpattern()`です。
+
+
 最後の3行では、legendやタイトルなどを指定し、グラフの名称を付けて終了しています。
+
+```
+legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+xtitle("Standardized Mean Difrences") title(Covariate Balance) ///
+name(bal_smd, replace)
+```
+
+
+#### 描画（分散比）
+
+```
+twoway ///
+    scatter odr varratio_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
+    scatter odr varratio_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'")|| ///
+    function y=1.25, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y= 0.8, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y=   1, horizontal range(0 14) lcolor("`zero'")  ///
+    legend(order(1 "Unadjusted" 2 "Adjusted")) ///
+    xscale(log) xlabel(0.7 0.8 1.0 1.25 1.5) xscale(extend) ///
+    xtitle("Variance Ratio, log-scale") title(Covariate Balance) ///
+    name(bal_vr, replace)
+```
+
+基本的には、標準化差のグラフと同様ですが、相違点として、xscale(log)を付けて、横軸を対数軸にしています。これは、「比」であるためです。
+
+--------
 
 #### 補遺）カラーパレット
 突然にローカルマクロ`` `unadj' ``と`` `adj' ``が出てきました。
@@ -659,24 +692,5 @@ net install gr0075, from(http://www.stata-journal.com/software/sj18-4) replace
 また、これに関する論文がStata Journalに載っています。
 
 [Color palettes for Stata graphics](https://www.stata-journal.com/article.html?article=gr0075)
-
-
-
-#### 描画（分散比）
-
-```
-twoway ///
-    scatter odr varratio_unwt, ylabel(14(1)1, valuelabel) mcolor("`unadj'") || ///
-    scatter odr varratio_iptw, ylabel(14(1)1, valuelabel) mcolor("`adj'")|| ///
-    function y=1.25, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
-    function y= 0.8, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
-    function y=   1, horizontal range(0 14) lcolor("`zero'")  ///
-    legend(order(1 "Unadjusted" 2 "Adjusted")) ///
-    xscale(log) xlabel(0.7 0.8 1.0 1.25 1.5) xscale(extend) ///
-    xtitle("Variance Ratio, log-scale") title(Covariate Balance) ///
-    name(bal_vr, replace)
-```
-
-基本的には、標準化差のグラフと同様ですが、相違点として、xscale(log)を付けて、横軸を対数軸にしています。これは、「比」であるためです。
 
 [^1]:候補の変数に対して全検索をかければ、真の最良が見つけられますが、そこまでしなくても良いかも。
