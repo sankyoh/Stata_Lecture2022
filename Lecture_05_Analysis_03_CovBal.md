@@ -617,6 +617,16 @@ ylabel(14(1)1, valuelabel)というオプションにより、変数順を指定
 
 mcolorでドットの色を指定していますが、特段の指定がなければ、標準色が適応されます。
 
+3行目～5行目では、縦線を描画しています。真ん中（x=0）の線と基準範囲となる線（x=-0.1とx=0.1）です。
+
+```
+    function y= 0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y=-0.1, horizontal range(0 14) lcolor(gs8) lpattern(shortdash) || ///
+    function y=0   , horizontal range(0 14) lcolor("`zero'")  ///
+```
+
+最後の3行では、legendやタイトルなどを指定し、グラフの名称を付けて終了しています。
+
 #### 補遺）カラーパレット
 突然にローカルマクロ`` `unadj' ``と`` `adj' ``が出てきました。
 
@@ -637,6 +647,9 @@ local zero `r(p2)'*/
 ```
 colorpalette hcl
 ```
+![image](https://user-images.githubusercontent.com/67684585/220176544-2dda394d-5541-4d51-9bb4-d2da738fb54b.png)
+
+このような感じの色のカラーコードが得られます。
 
 インストールは、下記で可能です。
 ```
@@ -644,14 +657,9 @@ net install gr0075, from(http://www.stata-journal.com/software/sj18-4) replace
 ```
 
 また、これに関する論文がStata Journalに載っています。
+
 [Color palettes for Stata graphics](https://www.stata-journal.com/article.html?article=gr0075)
 
-
-
-
-3行目～5行目では、縦線を描画しています。真ん中（x=0）の線と基準範囲となる線（x=-0.1とx=0.1）です。
-
-最後の3行では、legendやタイトルなどを指定し、グラフの名称を付けて終了しています。
 
 
 #### 描画（分散比）
