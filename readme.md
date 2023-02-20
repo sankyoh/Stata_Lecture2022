@@ -26,7 +26,7 @@ date("31Jan2023", "DMY") - date("07Feb2023", "DMY")
 * 傾向スコアバランスの確認
 
 ## Lecture 05. Analysis Project
-date("07Feb2023", "DMY")
+date("07Feb2023", "DMY") - date("21Feb2023", "DMY")
 * 「最良」の傾向スコアの計算方法を探索する
 * 共変量バランスのチェック
 * 共変量バランスの図示
