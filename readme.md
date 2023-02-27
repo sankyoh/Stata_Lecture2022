@@ -38,3 +38,6 @@ date("21Feb2023", "DMY")
 * IPTW解析を行う。
 * IPTWの結果を他の結果とともにExcelに書き出す。
 
+## Lecture 07. Make ado-file
+date("28Feb2023", "DMY")
+* 都道府県名（文字列）を都道府県番号（数値・ラベル付き）に変換するadoファイルを作成する。
