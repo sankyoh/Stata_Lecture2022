@@ -189,6 +189,7 @@ list pref pref_new in 1/10
 ```
 
 下記の様になったかと思います。
+
 ![image](https://user-images.githubusercontent.com/67684585/221657171-5a850885-07fd-49a2-8046-d9a807f82ef2.png)
 
 `labmask`コマンドで新たにラベルを貼ったはずなのに、反映されていません。
@@ -285,6 +286,7 @@ generateオプションで、コード化した新しい変数をつくります
 全体は下記の様になっています。
 
 ```
+*! version 1.0.0  23feb2023
 program define pref2code
 syntax varname [if] [in] , GENerate(string) [replace]
 
@@ -298,12 +300,6 @@ if ("`if'" == ""){
 	local if "if 1"
 }
 
-display "15 `varlist'"
-display "16 `generate'"
-display "17 `replace'"
-display "18 `in'"
-display "19 `if'"
-
 if ("`replace'" == "replace"){
 	qui cap drop `generate'
 }
@@ -312,62 +308,62 @@ if ("`replace'" == "replace"){
 qui {
 gen `generate' = .
 
-replace `generate' =  1 `in' `if' & regexm(`varlist', "北海道") | regexm(`varlist', "[H/h]okkaido")
+replace `generate' =  1 `in' `if' & (regexm(`varlist', "北海道") | regexm(`varlist', "[H/h]okkaido"))
 
-replace `generate' =  2 `in' `if' & regexm(`varlist', "青森") | regexm(`varlist', "[A/a]omori")
-replace `generate' =  3 `in' `if' & regexm(`varlist', "岩手") | regexm(`varlist', "[I/i]wate")
-replace `generate' =  4 `in' `if' & regexm(`varlist', "宮城") | regexm(`varlist', "[M/m]iyagi")
-replace `generate' =  5 `in' `if' & regexm(`varlist', "秋田") | regexm(`varlist', "[A/a]kita")
-replace `generate' =  6 `in' `if' & regexm(`varlist', "山形") | regexm(`varlist', "[Y/y]amagata")
-replace `generate' =  7 `in' `if' & regexm(`varlist', "福島") | regexm(`varlist', "[F/f/H/h]ukushima")
+replace `generate' =  2 `in' `if' & (regexm(`varlist', "青森") | regexm(`varlist', "[A/a]omori"))
+replace `generate' =  3 `in' `if' & (regexm(`varlist', "岩手") | regexm(`varlist', "[I/i]wate"))
+replace `generate' =  4 `in' `if' & (regexm(`varlist', "宮城") | regexm(`varlist', "[M/m]iyagi"))
+replace `generate' =  5 `in' `if' & (regexm(`varlist', "秋田") | regexm(`varlist', "[A/a]kita"))
+replace `generate' =  6 `in' `if' & (regexm(`varlist', "山形") | regexm(`varlist', "[Y/y]amagata"))
+replace `generate' =  7 `in' `if' & (regexm(`varlist', "福島") | regexm(`varlist', "[F/f/H/h]ukushima"))
 
-replace `generate' =  8 `in' `if' & regexm(`varlist', "茨城") | regexm(`varlist', "[I/i]baragi")
-replace `generate' =  9 `in' `if' & regexm(`varlist', "栃木") | regexm(`varlist', "[T/t]ochigi")
-replace `generate' = 10 `in' `if' & regexm(`varlist', "群馬") | regexm(`varlist', "[G/g]unma")
-replace `generate' = 11 `in' `if' & regexm(`varlist', "埼玉") | regexm(`varlist', "[S/s]aitama")
-replace `generate' = 12 `in' `if' & regexm(`varlist', "千葉") | regexm(`varlist', "[C/c]hiba")
-replace `generate' = 13 `in' `if' & regexm(`varlist', "東京") | regexm(`varlist', "[T/t]okyo")
-replace `generate' = 14 `in' `if' & regexm(`varlist', "神奈川") | regexm(`varlist', "[K/k]anagawa")
+replace `generate' =  8 `in' `if' & (regexm(`varlist', "茨城") | regexm(`varlist', "[I/i]baragi"))
+replace `generate' =  9 `in' `if' & (regexm(`varlist', "栃木") | regexm(`varlist', "[T/t]ochigi"))
+replace `generate' = 10 `in' `if' & (regexm(`varlist', "群馬") | regexm(`varlist', "[G/g]unma")))
+replace `generate' = 11 `in' `if' & (regexm(`varlist', "埼玉") | regexm(`varlist', "[S/s]aitama"))
+replace `generate' = 12 `in' `if' & (regexm(`varlist', "千葉") | regexm(`varlist', "[C/c]hiba"))
+replace `generate' = 13 `in' `if' & (regexm(`varlist', "東京") | regexm(`varlist', "[T/t]okyo"))
+replace `generate' = 14 `in' `if' & (regexm(`varlist', "神奈川") | regexm(`varlist', "[K/k]anagawa"))
 
-replace `generate' = 15 `in' `if' & regexm(`varlist', "新潟") | regexm(`varlist', "[N/n]iigata")
-replace `generate' = 16 `in' `if' & regexm(`varlist', "富山") | regexm(`varlist', "[T/t]oyama")
-replace `generate' = 17 `in' `if' & regexm(`varlist', "石川") | regexm(`varlist', "[I/i]shikawa")
-replace `generate' = 18 `in' `if' & regexm(`varlist', "福井") | regexm(`varlist', "[F/f/H/h]ukui")
-replace `generate' = 19 `in' `if' & regexm(`varlist', "山梨") | regexm(`varlist', "[Y/y]amanashi")
-replace `generate' = 20 `in' `if' & regexm(`varlist', "長野") | regexm(`varlist', "[N/n]agano")
+replace `generate' = 15 `in' `if' & (regexm(`varlist', "新潟") | regexm(`varlist', "[N/n]iigata"))
+replace `generate' = 16 `in' `if' & (regexm(`varlist', "富山") | regexm(`varlist', "[T/t]oyama")))
+replace `generate' = 17 `in' `if' & (regexm(`varlist', "石川") | regexm(`varlist', "[I/i]shikawa"))
+replace `generate' = 18 `in' `if' & (regexm(`varlist', "福井") | regexm(`varlist', "[F/f/H/h]ukui"))
+replace `generate' = 19 `in' `if' & (regexm(`varlist', "山梨") | regexm(`varlist', "[Y/y]amanashi"))
+replace `generate' = 20 `in' `if' & (regexm(`varlist', "長野") | regexm(`varlist', "[N/n]agano"))
 
-replace `generate' = 21 `in' `if' & regexm(`varlist', "岐阜") | regexm(`varlist', "[G/g]i[f/h]u")
-replace `generate' = 22 `in' `if' & regexm(`varlist', "静岡") | regexm(`varlist', "[S/s]hizuoka")
-replace `generate' = 23 `in' `if' & regexm(`varlist', "愛知") | regexm(`varlist', "[A/a]ichi")
-replace `generate' = 24 `in' `if' & regexm(`varlist', "三重") | regexm(`varlist', "[M/m]ie")
+replace `generate' = 21 `in' `if' & (regexm(`varlist', "岐阜") | regexm(`varlist', "[G/g]i[f/h]u"))
+replace `generate' = 22 `in' `if' & (regexm(`varlist', "静岡") | regexm(`varlist', "[S/s]hizuoka"))
+replace `generate' = 23 `in' `if' & (regexm(`varlist', "愛知") | regexm(`varlist', "[A/a]ichi"))
+replace `generate' = 24 `in' `if' & (regexm(`varlist', "三重") | regexm(`varlist', "[M/m]ie"))
 
-replace `generate' = 25 `in' `if' & regexm(`varlist', "滋賀") | regexm(`varlist', "[S/s]higa")
-replace `generate' = 26 `in' `if' & regexm(`varlist', "京都") | regexm(`varlist', "[K/k]yoto")
-replace `generate' = 27 `in' `if' & regexm(`varlist', "大阪") | regexm(`varlist', "[O/o]saka")
-replace `generate' = 28 `in' `if' & regexm(`varlist', "兵庫") | regexm(`varlist', "[H/h]yogo")
-replace `generate' = 29 `in' `if' & regexm(`varlist', "奈良") | regexm(`varlist', "[N/n]ara")
-replace `generate' = 30 `in' `if' & regexm(`varlist', "和歌山") | regexm(`varlist', "[W/w]akayama")
+replace `generate' = 25 `in' `if' & (regexm(`varlist', "滋賀") | regexm(`varlist', "[S/s]higa"))
+replace `generate' = 26 `in' `if' & (regexm(`varlist', "京都") | regexm(`varlist', "[K/k]yoto"))
+replace `generate' = 27 `in' `if' & (regexm(`varlist', "大阪") | regexm(`varlist', "[O/o]saka")))
+replace `generate' = 28 `in' `if' & (regexm(`varlist', "兵庫") | regexm(`varlist', "[H/h]yogo"))
+replace `generate' = 29 `in' `if' & (regexm(`varlist', "奈良") | regexm(`varlist', "[N/n]ara"))
+replace `generate' = 30 `in' `if' & (regexm(`varlist', "和歌山") | regexm(`varlist', "[W/w]akayama"))
 
-replace `generate' = 31 `in' `if' & regexm(`varlist', "鳥取") | regexm(`varlist', "[T/t]ottori")
-replace `generate' = 32 `in' `if' & regexm(`varlist', "島根") | regexm(`varlist', "[S/s]himane")
-replace `generate' = 33 `in' `if' & regexm(`varlist', "岡山") | regexm(`varlist', "[O/o]kayama")
-replace `generate' = 34 `in' `if' & regexm(`varlist', "広島") | regexm(`varlist', "[H/h]iroshima]")
-replace `generate' = 35 `in' `if' & regexm(`varlist', "山口") | regexm(`varlist', "[Y/y]amaguchi")
+replace `generate' = 31 `in' `if' & (regexm(`varlist', "鳥取") | regexm(`varlist', "[T/t]ottori"))
+replace `generate' = 32 `in' `if' & (regexm(`varlist', "島根") | regexm(`varlist', "[S/s]himane")))
+replace `generate' = 33 `in' `if' & (regexm(`varlist', "岡山") | regexm(`varlist', "[O/o]kayama"))
+replace `generate' = 34 `in' `if' & (regexm(`varlist', "広島") | regexm(`varlist', "[H/h]iroshima]"))
+replace `generate' = 35 `in' `if' & (regexm(`varlist', "山口") | regexm(`varlist', "[Y/y]amaguchi"))
 
-replace `generate' = 36 `in' `if' & regexm(`varlist', "徳島") | regexm(`varlist', "[T/t]okushima")
-replace `generate' = 37 `in' `if' & regexm(`varlist', "香川") | regexm(`varlist', "[K/k]agawa")
-replace `generate' = 38 `in' `if' & regexm(`varlist', "愛媛") | regexm(`varlist', "[E/e]hime")
-replace `generate' = 39 `in' `if' & regexm(`varlist', "高知") | regexm(`varlist', "[K/k]ochi")
+replace `generate' = 36 `in' `if' & (regexm(`varlist', "徳島") | regexm(`varlist', "[T/t]okushima"))
+replace `generate' = 37 `in' `if' & (regexm(`varlist', "香川") | regexm(`varlist', "[K/k]agawa"))
+replace `generate' = 38 `in' `if' & (regexm(`varlist', "愛媛") | regexm(`varlist', "[E/e]hime")))
+replace `generate' = 39 `in' `if' & (regexm(`varlist', "高知") | regexm(`varlist', "[K/k]ochi"))
 
-replace `generate' = 40 `in' `if' & regexm(`varlist', "福岡") | regexm(`varlist', "[F/f/H/h]ukuoka")
-replace `generate' = 41 `in' `if' & regexm(`varlist', "佐賀") | regexm(`varlist', "[S/s]aga")
-replace `generate' = 42 `in' `if' & regexm(`varlist', "長崎") | regexm(`varlist', "[N/n]agasaki")
-replace `generate' = 43 `in' `if' & regexm(`varlist', "熊本") | regexm(`varlist', "[K/k]umamoto")
-replace `generate' = 44 `in' `if' & regexm(`varlist', "大分") | regexm(`varlist', "[O/o]ita")
-replace `generate' = 45 `in' `if' & regexm(`varlist', "宮崎") | regexm(`varlist', "[M/m]iyazaki")
-replace `generate' = 46 `in' `if' & regexm(`varlist', "鹿児島") | regexm(`varlist', "[K/k]agoshima")
+replace `generate' = 40 `in' `if' & (regexm(`varlist', "福岡") | regexm(`varlist', "[F/f/H/h]ukuoka"))
+replace `generate' = 41 `in' `if' & (regexm(`varlist', "佐賀") | regexm(`varlist', "[S/s]aga"))
+replace `generate' = 42 `in' `if' & (regexm(`varlist', "長崎") | regexm(`varlist', "[N/n]agasaki"))
+replace `generate' = 43 `in' `if' & (regexm(`varlist', "熊本") | regexm(`varlist', "[K/k]umamoto")))
+replace `generate' = 44 `in' `if' & (regexm(`varlist', "大分") | regexm(`varlist', "[O/o]ita"))
+replace `generate' = 45 `in' `if' & (regexm(`varlist', "宮崎") | regexm(`varlist', "[M/m]iyazaki"))
+replace `generate' = 46 `in' `if' & (regexm(`varlist', "鹿児島") | regexm(`varlist', "[K/k]agoshima"))
 
-replace `generate' = 47 if regexm(`varlist', "沖縄") | regexm(`varlist', "[O/o]kinawa")
+replace `generate' = 47 `in' `if' & (regexm(`varlist', "沖縄") | regexm(`varlist', "[O/o]kinawa"))
 
 }
 
@@ -376,16 +372,12 @@ labmask `generate', value(`varlist')
 end
 ```
 
+### syntaxコマンドの利用
+
 まず、最初の部分から確認します。
 
 ```
 syntax varname [if] [in] , GENerate(string) [replace]
-
-display "5 `varlist'"
-display "6 `generate'"
-display "7 `replace'"
-display "8 `in'"
-display "9 `if'"
 ```
 
 `syntax`コマンドで文法をしていしています。
@@ -402,3 +394,105 @@ pref2codeは、下記のような文法を持つと指定されています。
 `syntax`コマンドで指定した分布通りに書かれると、プログラム内のローカルマクロになります。
 * varname部分 ⇒ `` ロカールマクロ`varlist' ``
 * if節 ⇒ `` ローカルマクロ`if' ``
+* in節 ⇒ `` ローカルマクロ`in' ``
+* オプションgenerate ⇒ `` ローカルマクロ`generate' ``
+* オプションreplace ⇒ `` ローカルマクロ`replace' ``
+
+プログラム内でこれらが取得されていることを確認したいと思います。
+
+```
+display "5 `varlist'"
+display "6 `generate'"
+display "7 `replace'"
+display "8 `in'"
+display "9 `if'"
+```
+
+とりあえず、この部分の確認のために、下記をうごかします。
+
+```
+cap program drop pref2code
+pref2code pref in 1/40 if Y19M01 > 1766, gen(pref_code) replace
+```
+
+![image](https://user-images.githubusercontent.com/67684585/221670603-a7b03389-3fa1-4f10-aed7-93db248ed2bd.png)
+
+コマンドに入力した情報が、プログラム内のローカルマクロとして取得されました。
+
+このローカルマクロを用いて内部処理を行います。
+
+まず、`replace`オプションについて処理を行います。
+
+これは、すでにある変数を指定したとしても、上書きするという処理でした。
+
+```
+if ("`replace'" == "replace"){
+	qui cap drop `generate'
+}
+```
+
+この部分で実行しています。
+
+replaceの指定があれば、変数の削除を試みるという処理です。
+
+また、他のローカルマクロは、都道府県の値を割り振る際に利用しています（北海道を例に）。
+
+```
+replace `generate' =  1 `in' `if' & (regexm(`varlist', "北海道") | regexm(`varlist', "[H/h]okkaido"))
+```
+
+ここで注意が必要なのはif節の運用です。
+
+ifが指定されているときには問題ありませんが、**ifが指定されていないときには``ローカルマクロ `if'  ``は空白になり、上記はエラーになります。**
+
+つまり、
+
+```
+pref2code pref in 1/40, gen(pref_code) replace
+```
+
+このような指定を行った場合、北海道のreplaceは次の様に解釈されます。
+
+```
+replace pref_code =  1 in 1/40  & (regexm(pref, "北海道") | regexm(`varlist', "[H/h]okkaido"))
+```
+
+if節が消えてしまったにも関わらず、regexm関数を連結しているので、エラーになってしまいます。
+
+そこで、コマンドでif節を呼び出ししなかった場合の処理を追加しています。
+
+```
+if ("`if'" == ""){
+	local if "if 1"
+}
+```
+
+この処理では、if節が空白だったときに、``ローカルマクロ `if' ``に対して、``if 1``を指定します。
+
+この処理を追加しておけば、下記の様になります。
+
+```
+replace pref_code =  1 in 1/40  if 1 & (regexm(pref, "北海道") | regexm(`varlist', "[H/h]okkaido"))
+```
+
+if節が復活し、`if 1 & (条件1 | 条件2)`という形になっています。
+
+if節中の「1」は条件が常に成立することを意味しますので、下記2つは同値です。
+* `if 1 & (条件1 | 条件2)`
+* `if (条件1 | 条件2)`
+
+もともと、pref2codeでのif節が空白の時の処理でしたので、この処理で想定通りの処理になります。
+
+最終的に、確認のための出力をコメントアウトして、下記のテストを行います。
+
+```
+pref2code pref in 1/36 if Y19M01 > 5000, gen(pref_code) replace
+list pref pref_code Y19M01
+```
+
+この実行によって、下記の10都道府県のみがコード化されているはずです。
+
+北海道、埼玉、千葉、東京、神奈川、新潟、愛知、大阪、兵庫、広島
+
+pref2code.adoファイルを修正したのに、上手くいかない場合は、``program drop pref2code``の実行を忘れていないか確認して下さい。
+
