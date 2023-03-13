@@ -41,3 +41,8 @@ date("21Feb2023", "DMY")
 ## Lecture 07. Make ado-file
 date("28Feb2023", "DMY")
 * 都道府県名（文字列）を都道府県番号（数値・ラベル付き）に変換するadoファイルを作成する。
+
+## Lecture 08. Instrumental Variable
+date("14Mar2023", "DMY")
+* 操作変数法の入門とStataでの実装
+
